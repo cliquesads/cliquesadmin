@@ -1,31 +1,36 @@
 #!/usr/bin/env python
-
 import logging
-import sys
+import os
 import argparse
 import httplib2
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client import tools
 from oauth2client.tools import run_flow
-
 from googleapiclient.discovery import build
+
+from cliquesadmin import REPOSITORY_PATH
 
 DEFAULT_ZONE = 'us-central1-a'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
 PROJECT_ID = 'mimetic-codex-781'
-CLIENT_SECRETS = 'client_secrets.json'
-OAUTH2_STORAGE = 'oauth2.dat'
+CLIENT_SECRETS = os.path.join(REPOSITORY_PATH,'client_secrets.json')
+OAUTH2_STORAGE = os.path.join(REPOSITORY_PATH,'oauth2.dat')
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 
-def main(argv):
+def authenticate_and_build(argv):
+    """
+    Authenticates with OAuth 2.0 credentials, if present, and builds
+    :param argv:
+    :return:
+    """
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(
-    description=__doc__,
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    parents=[tools.argparser])
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[tools.argparser])
 
     # Parse the command-line flags.
     flags = parser.parse_args(argv[1:])
@@ -42,18 +47,9 @@ def main(argv):
 
     # Build the service
     gce_service = build('compute', API_VERSION)
-    project_url = '%s%s' % (GCE_URL, PROJECT_ID)
+    # project_url = '%s%s' % (GCE_URL, PROJECT_ID)
 
-    # List instances
-    request = gce_service.instances().list(project=PROJECT_ID, filter=None, zone=DEFAULT_ZONE)
-    response = request.execute(http=auth_http)
-    if response and 'items' in response:
-        instances = response['items']
-        for instance in instances:
-            print instance['name']
-    else:
-        print 'No instances to list.'
-
+    return auth_http, gce_service
 
 def _blocking_call(gce_service, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
@@ -76,7 +72,7 @@ def _blocking_call(gce_service, auth_http, response):
     response = request.execute(http=auth_http)
     if response:
       status = response['status']
-    return response
+    return status
 
-if __name__ == '__main__':
-    main(sys.argv)
+# if __name__ == '__main__':
+#     main(sys.argv)
