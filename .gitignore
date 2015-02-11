@@ -2,3 +2,5 @@ venv
 *.pyc
 .env
 .idea
+.dat
+client-secrets.json
