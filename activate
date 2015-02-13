@@ -1,4 +1,4 @@
 #!/bin/bash
-source $HOME/repositories/cliquesadmin/venv/bin/activate
+. $HOME/repositories/cliquesadmin/venv/bin/activate
 PYTHONPATH=$HOME'/repositories/cliquesadmin/cliquesadmin'
 export PYTHONPATH
