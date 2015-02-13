@@ -3,11 +3,13 @@ import logging
 import os
 import argparse
 import httplib2
+from time import sleep
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client import tools
 from oauth2client.tools import run_flow
 from googleapiclient.discovery import build
+from functools import wraps
 from cliquesadmin import REPOSITORY_PATH
 
 class GCESettings:
@@ -24,8 +26,9 @@ class CliquesGCESettings(GCESettings):
     CLIENT_SECRETS = os.path.join(REPOSITORY_PATH,'client_secrets.json')
     OAUTH2_STORAGE = os.path.join(REPOSITORY_PATH,'oauth2.dat')
 
+cliques_gce_settings = CliquesGCESettings()
 
-def authenticate_and_build(argv, gce_settings=CliquesGCESettings):
+def authenticate_and_build(argv, gce_settings=cliques_gce_settings):
     """
     Authenticates with OAuth 2.0 credentials, if present, and builds GCE API Service obj
 
@@ -57,28 +60,55 @@ def authenticate_and_build(argv, gce_settings=CliquesGCESettings):
 
     return auth_http, gce_service
 
-def _blocking_call(gce_service, auth_http, response, gce_settings=CliquesGCESettings):
-    """Blocks until the operation status is done for the given operation."""
+def blocking_call(func):
+    """
+    Blocks until the operation status is done for the given operation.
 
-    status = response['status']
-    while status != 'DONE' and response:
-        operation_id = response['name']
+    Functions decorated must have the following signature::
 
-    # Identify if this is a per-zone resource
-    if 'zone' in response:
-      zone_name = response['zone'].split('/')[-1]
-      request = gce_service.zoneOperations().get(
-          project=gce_settings.PROJECT_ID,
-          operation=operation_id,
-          zone=zone_name)
-    else:
-      request = gce_service.globalOperations().get(
-           project=gce_settings.PROJECT_ID, operation=operation_id)
+    def some_api_call(auth_http, gce_service, *args, gce_settings=cliques_gce_settings, **kwargs)
+        ...
 
-    response = request.execute(http=auth_http)
-    if response:
-      status = response['status']
-    return status
+    :param auth_http: Oauth2.0 authorized HTTP object
+    :param gce_service: built Google Compute Engine API service
+    :param gce_settings: GCESettings object
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        auth_http = args[0]
+        gce_service = args[1]
+        if kwargs:
+            gce_settings = kwargs['gce_settings']
+        else:
+            gce_settings = filter(lambda k: issubclass(k.__class__, GCESettings), func.func_defaults)
+            if not gce_settings:
+                raise Exception("You must specify a GCESettings object to use as function kwarg")
+            elif len(gce_settings) > 1:
+                raise TypeError("Found two GCESettings kwarg defaults, you can only specify one")
+            else:
+                gce_settings = gce_settings[0]
+        response = func(*args, **kwargs)
+        status = response['status']
+        while status != 'DONE' and response:
+            operation_id = response['name']
+
+            # Identify if this is a per-zone resource
+            if 'zone' in response:
+              zone_name = response['zone'].split('/')[-1]
+              request = gce_service.zoneOperations().get(
+                  project=gce_settings.PROJECT_ID,
+                  operation=operation_id,
+                  zone=zone_name)
+            else:
+              request = gce_service.globalOperations().get(
+                   project=gce_settings.PROJECT_ID, operation=operation_id)
+
+            response = request.execute(http=auth_http)
+            if response:
+              status = response['status']
+            sleep(5) #sleep for 5 seconds to avoid unnecessary API calls
+        return status
+    return wrapper
 
 # if __name__ == '__main__':
 #     main(sys.argv)
