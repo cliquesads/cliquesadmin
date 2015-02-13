@@ -1,6 +1,6 @@
 import sys
 from datetime import datetime
-from . import cliques_gce_settings, authenticate_and_build, blocking_call
+from cliquesadmin.gce_utils import cliques_gce_settings, authenticate_and_build, blocking_call
 
 def get_all_disks(auth_http, gce_service, gce_settings=cliques_gce_settings):
     """
