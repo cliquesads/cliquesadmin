@@ -12,6 +12,8 @@ from googleapiclient.discovery import build
 from functools import wraps
 from cliquesadmin import REPOSITORY_PATH
 
+logger = logging.getLogger(__name__)
+
 class GCESettings:
     ZONE = 'us-central1-a'
     API_VERSION = 'v1'
@@ -75,6 +77,8 @@ def blocking_call(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
+
+        #wrapper stuff
         auth_http = args[0]
         gce_service = args[1]
         if kwargs:
@@ -89,6 +93,8 @@ def blocking_call(func):
                 gce_settings = gce_settings[0]
         response = func(*args, **kwargs)
         status = response['status']
+
+        #wait for status to be DONE, check every 5 seconds
         while status != 'DONE' and response:
             operation_id = response['name']
 
@@ -107,7 +113,15 @@ def blocking_call(func):
             if response:
               status = response['status']
             sleep(5) #sleep for 5 seconds to avoid unnecessary API calls
-        return status
+
+        #log any errors that came back
+        if response.has_key('error'):
+            logger.warn('Operation completed with errors:')
+            for error in response['error']['errors']:
+                logger.warn('Error Code: %s -- %s' % (error['code'], error['message']))
+        else:
+            logger.info('Successfully completed API operation with no errors.')
+        return response
     return wrapper
 
 # if __name__ == '__main__':
