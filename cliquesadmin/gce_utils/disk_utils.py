@@ -27,10 +27,3 @@ def make_snapshot(auth_http, gce_service, disk_name, gce_settings=cliques_gce_se
                                                  body=body)
     response = request.execute(http=auth_http)
     return response
-
-if __name__ == "__main__":
-    auth_http, gce_service = authenticate_and_build(sys.argv)
-    k = get_all_disks(auth_http, gce_service)
-    for d in k:
-        resp = make_snapshot(auth_http, gce_service, d)
-        print resp

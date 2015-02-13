@@ -34,7 +34,7 @@ def authenticate_and_build(argv, gce_settings=cliques_gce_settings):
 
     :return: auth_http, gce_service
     """
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     parser = argparse.ArgumentParser(
         description=__doc__,
