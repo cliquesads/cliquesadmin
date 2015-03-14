@@ -5,7 +5,7 @@ class UserBehavior(TaskSet):
 
     @task
     def test_auction(self):
-        with self.client.get("/exchange/test_auction", catch_response=True) as response:
+        with self.client.get("/pub?tag_id=54f8df2e6bcc85d9653becfb", catch_response=True) as response:
             if json.loads(response.content).has_key('default'):
                 response.failure('default ad served, all bids timed out')
 
