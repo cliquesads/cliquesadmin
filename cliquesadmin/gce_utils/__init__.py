@@ -16,7 +16,8 @@ from cliquesadmin import REPOSITORY_PATH, CONFIG_PATH
 logger = logging.getLogger(__name__)
 
 
-class GCESettings:
+class CliquesGCESettings:
+    # TODO: Zone is not static, need to handle multiple zones
     ZONE = 'us-central1-a'
     PROJECT_ID = 'mimetic-codex-781'
     JWT_SECRETS = os.path.join(CONFIG_PATH, 'google', 'jwt.json')
@@ -27,29 +28,30 @@ class GCESettings:
     OAUTH2_STORAGE = None
 
 
-class CliquesGCESettings(GCESettings):
-    API_VERSION = 'v1'
-    API_NAME = 'compute'
-    SCOPE = 'https://www.googleapis.com/auth/compute'
-    CLIENT_SECRETS = os.path.join(REPOSITORY_PATH,'client_secrets.json')
-    OAUTH2_STORAGE = os.path.join(REPOSITORY_PATH,'oauth2.dat')
+def authenticate_and_build_jwt_client(gce_settings):
+    f = file(gce_settings.JWT_SECRETS, 'rb')
+    secrets = json.load(f)
+    f.close()
+    key = secrets['private_key']
+    email = secrets['client_email']
+    credentials = SignedJwtAssertionCredentials(
+        email,
+        key,
+        scope=gce_settings.SCOPE
+    )
+    http = httplib2.Http()
+    http = credentials.authorize(http)
+    service = build(gce_settings.API_NAME, gce_settings.API_VERSION, http=http)
+    return service
 
-
-class CliquesBigQuerySettings(GCESettings):
-    API_VERSION = 'v2'
-    SCOPE = 'https://www.googleapis.com/auth/bigquery'
-    API_NAME = 'bigquery'
-
-
-cliques_gce_settings = CliquesGCESettings()
-cliques_bq_settings = CliquesBigQuerySettings()
-
-
-def authenticate_and_build(argv, gce_settings=cliques_gce_settings):
+def authenticate_and_build_oauth(argv, gce_settings):
     """
     Authenticates with OAuth 2.0 credentials, if present, and builds GCE API Service obj
 
-    :return: auth_http, gce_service
+    Provides HTTP client to service client, so specifying http=auth_http in request.execute()
+    is unnecessary.
+
+    :return: gce_service
     """
     logging.basicConfig(level=logging.DEBUG)
 
@@ -73,9 +75,9 @@ def authenticate_and_build(argv, gce_settings=cliques_gce_settings):
 
     # Build the service
     gce_service = build(gce_settings.API_NAME, gce_settings.API_VERSION, http=auth_http)
-    # project_url = '%s%s' % (GCE_URL, PROJECT_ID)
 
-    return auth_http, gce_service
+    return gce_service
+
 
 def blocking_call(func):
     """
@@ -83,10 +85,9 @@ def blocking_call(func):
 
     Functions decorated must have the following signature::
 
-    def some_api_call(auth_http, gce_service, *args, gce_settings=cliques_gce_settings, **kwargs)
+    def some_api_call(gce_service, *args, gce_settings=cliques_gce_settings, **kwargs)
         ...
 
-    :param auth_http: Oauth2.0 authorized HTTP object
     :param gce_service: built Google Compute Engine API service
     :param gce_settings: GCESettings object
     """
@@ -94,12 +95,12 @@ def blocking_call(func):
     def wrapper(*args, **kwargs):
 
         # wrapper stuff
-        auth_http = args[0]
-        gce_service = args[1]
+        # auth_http = args[0]
+        gce_service = args[0]
         if kwargs:
             gce_settings = kwargs['gce_settings']
         else:
-            gce_settings = filter(lambda k: issubclass(k.__class__, GCESettings), func.func_defaults)
+            gce_settings = filter(lambda k: issubclass(k.__class__, CliquesGCESettings), func.func_defaults)
             if not gce_settings:
                 raise Exception("You must specify a GCESettings object to use as function kwarg")
             elif len(gce_settings) > 1:
@@ -124,7 +125,8 @@ def blocking_call(func):
                 request = gce_service.globalOperations().get(
                     project=gce_settings.PROJECT_ID, operation=operation_id)
 
-            response = request.execute(http=auth_http)
+            # response = request.execute(http=auth_http)
+            response = request.execute()
             if response:
                 status = response['status']
             sleep(5) # sleep for 5 seconds to avoid unnecessary API calls
@@ -139,22 +141,6 @@ def blocking_call(func):
         return response
     return wrapper
 
-
-def authenticate_and_build_with_service_account(gce_settings):
-    f = file(gce_settings.JWT_SECRETS, 'rb')
-    secrets = json.load(f)
-    f.close()
-    key = secrets['private_key']
-    email = secrets['client_email']
-    credentials = SignedJwtAssertionCredentials(
-        email,
-        key,
-        scope=gce_settings.SCOPE
-    )
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-    service = build(gce_settings.API_NAME, gce_settings.API_VERSION, http=http)
-    return service
 
 
 # if __name__ == '__main__':
