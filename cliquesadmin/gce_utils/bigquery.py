@@ -6,6 +6,8 @@ from jinja2 import Environment, PackageLoader
 # from feedparser import _parse_date as parse_date
 from cliquesadmin.gce_utils import authenticate_and_build_jwt_client, CliquesGCESettings
 
+logger = logging.getLogger(__name__)
+
 
 class CliquesBigQuerySettings(CliquesGCESettings):
     API_VERSION = 'v2'
@@ -14,17 +16,17 @@ class CliquesBigQuerySettings(CliquesGCESettings):
 
 cliques_bq_settings = CliquesBigQuerySettings()
 
-env = Environment(loader=PackageLoader('cliquesadmin', 'bigquery'))
+jinja_bq_env = Environment(loader=PackageLoader('cliquesadmin', 'bigquery'))
 
 if __name__ == '__main__':
     gce_service = authenticate_and_build_jwt_client(cliques_bq_settings)
-    template = env.get_template('hourlyadstats.sql')
+    template = jinja_bq_env.get_template('hourlyadstats.sql')
     rendered = template.render()
     query_data = {'query': rendered}
     query_request = gce_service.jobs()
     query_response = query_request.query(projectId=cliques_bq_settings.PROJECT_ID,
                                          body=query_data).execute()
-    print 'Query Results:'
+    logger.info('Query Results:')
     for row in query_response['rows']:
         result_row = []
         for field in row['f']:
