@@ -3,4 +3,4 @@ venv
 .env
 .idea
 *.dat
-client_secrets.json
+config
