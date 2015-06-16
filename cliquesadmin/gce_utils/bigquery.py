@@ -4,13 +4,20 @@ from jinja2 import Environment, PackageLoader
 # from datetime import datetime
 # from time import mktime
 # from feedparser import _parse_date as parse_date
-from cliquesadmin.gce_utils import authenticate_and_build_with_service_account, cliques_bq_settings
+from cliquesadmin.gce_utils import authenticate_and_build_jwt_client, CliquesGCESettings
 
+
+class CliquesBigQuerySettings(CliquesGCESettings):
+    API_VERSION = 'v2'
+    SCOPE = 'https://www.googleapis.com/auth/bigquery'
+    API_NAME = 'bigquery'
+
+cliques_bq_settings = CliquesBigQuerySettings()
 
 env = Environment(loader=PackageLoader('cliquesadmin', 'bigquery'))
 
 if __name__ == '__main__':
-    gce_service = authenticate_and_build_with_service_account(cliques_bq_settings)
+    gce_service = authenticate_and_build_jwt_client(cliques_bq_settings)
     template = env.get_template('hourlyadstats.sql')
     rendered = template.render()
     query_data = {'query': rendered}
