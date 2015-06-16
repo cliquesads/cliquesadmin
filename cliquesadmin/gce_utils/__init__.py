@@ -11,7 +11,7 @@ from oauth2client import tools
 from oauth2client.tools import run_flow
 from googleapiclient.discovery import build
 from functools import wraps
-from cliquesadmin import REPOSITORY_PATH, CONFIG_PATH
+from cliquesadmin import CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -140,8 +140,3 @@ def blocking_call(func):
             logger.info('Successfully completed API operation with no errors.')
         return response
     return wrapper
-
-
-
-# if __name__ == '__main__':
-#     main(sys.argv)
