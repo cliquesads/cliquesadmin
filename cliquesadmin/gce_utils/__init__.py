@@ -44,6 +44,7 @@ def authenticate_and_build_jwt_client(gce_settings):
     service = build(gce_settings.API_NAME, gce_settings.API_VERSION, http=http)
     return service
 
+
 def authenticate_and_build_oauth(argv, gce_settings):
     """
     Authenticates with OAuth 2.0 credentials, if present, and builds GCE API Service obj

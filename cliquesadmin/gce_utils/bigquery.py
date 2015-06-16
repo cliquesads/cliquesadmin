@@ -26,12 +26,17 @@ if __name__ == '__main__':
     query_request = gce_service.jobs()
     query_response = query_request.query(projectId=cliques_bq_settings.PROJECT_ID,
                                          body=query_data).execute()
-    logger.info('Query Results:')
+    print('Query Results:')
     for row in query_response['rows']:
         result_row = []
         for field in row['f']:
-            result_row.append(field['v'])
-            print ('\t').join(result_row)
+            val = field['v']
+            if val is not None:
+                result_row.append(val)
+            else:
+                result_row.append('null')
+        row = '\t'.join(result_row)
+        print(row)
 
 
 
