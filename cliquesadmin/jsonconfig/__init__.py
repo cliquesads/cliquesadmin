@@ -24,7 +24,7 @@ class JsonConfigParser(object):
         if config_path is None:
             config_path = CONFIG_PATH
         self.config_path = config_path
-        self.env = os.environ['ENV']
+        self.env = os.environ.get('ENV', None)
         self._get_config()
 
     def _get_config(self):
@@ -38,12 +38,17 @@ class JsonConfigParser(object):
         except IOError:
             raise IOError('No default.json file found in config_path %s' % self.config_path)
 
-        try:
-            env_file = file(os.path.join(self.config_path, '%s.json' % self.env), 'rb')
-            self.env_config = json.load(env_file)
-            env_file.close()
-        except IOError:
-            self.env_config = {}
+        self.env_config = {}
+        if self.env is not None:
+            try:
+                env_file = file(os.path.join(self.config_path, '%s.json' % self.env), 'rb')
+                self.env_config = json.load(env_file)
+                env_file.close()
+            except IOError:
+                # Fail silently if matching config JSON file not found
+                # for specified environment. This is how Node parser
+                # behaves (I think)
+                pass
 
     def get(self, *args):
         """
