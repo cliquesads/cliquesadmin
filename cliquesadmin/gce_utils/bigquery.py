@@ -15,6 +15,7 @@ class CliquesBigQuerySettings(CliquesGCESettings):
     SCOPE = 'https://www.googleapis.com/auth/bigquery'
     API_NAME = 'bigquery'
 
+
 cliques_bq_settings = CliquesBigQuerySettings()
 jinja_bq_env = Environment(loader=PackageLoader('cliquesadmin', 'bigquery'))
 
@@ -95,16 +96,41 @@ class BigQueryMongoETL(object):
         return dataframe
 
     def transform(self, dataframe):
+        """
+        Hook for subclasses to do any necessary transformation
+        of raw query output before inserting into MongoDB.
+
+        Base class just passes dataframe right through.
+
+        :param dataframe:
+        :return:
+        """
         return dataframe
 
     def load(self, dataframe):
-        # bulk insert into Mongo here
-        pass
+        """
+        Loads a pandas dataframe object into MongoDB collection
+
+        :param dataframe:
+        :return:
+        """
+        records = dataframe.to_dict(orient='records')
+
+        # Not proud of this, would love to figure out a way
+        # around this natively in Pandas
+        for row in records:
+            for k in row:
+                if isinstance(row[k], pd.tslib.Timestamp):
+                    row[k] = row[k].to_datetime()
+
+        result = collection.insert_many(records)
+        return result
 
     def run(self, **kwargs):
         dataframe = self.extract(**kwargs)
         dataframe = self.transform(dataframe)
-        self.load(dataframe)
+        result = self.load(dataframe)
+        return result
 
 if __name__ == '__main__':
     from cliquesadmin.jsonconfig import JsonConfigParser
@@ -115,7 +141,7 @@ if __name__ == '__main__':
     client.exchange.authenticate(config.get('ETL', 'mongodb', 'user'),
                                  config.get('ETL', 'mongodb', 'pwd'),
                                  source=config.get('ETL', 'mongodb', 'db'))
-    collection = client.exchange.advertisers
+    collection = client.exchange.test
     etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, collection)
-    df = etl.extract(start=datetime(2015, 6, 1, 0, 0, 0), end=datetime(2015, 6, 15, 0, 0, 0))
-    print df
+    result = etl.run(start=datetime(2015, 6, 1, 0, 0, 0), end=datetime(2015, 6, 15, 0, 0, 0))
+    print result
