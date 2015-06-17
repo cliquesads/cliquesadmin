@@ -27,7 +27,9 @@ if __name__ == '__main__':
     logger.info('Beginning %s ETL for interval %s to %s' % (name, args.start, args.end))
 
     result = etl.run(start=args.start, end=args.end)
-
-    logger.info('Inserted %s documents into collection %s' %
-                (len(result.inserted_ids), collection.full_name))
-    logger.info('%s ETL Complete' % name)
+    if result is not None:
+        logger.info('Inserted %s documents into collection %s' %
+                    (len(result.inserted_ids), collection.full_name))
+        logger.info('%s ETL Complete' % name)
+    else:
+        logger.info('No rows to insert, ETL complete.')

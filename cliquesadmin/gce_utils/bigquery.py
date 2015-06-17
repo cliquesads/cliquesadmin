@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 from jinja2 import Environment, PackageLoader
 from datetime import datetime
-# from time import mktime
-# from feedparser import _parse_date as parse_date
 from cliquesadmin.gce_utils import authenticate_and_build_jwt_client, CliquesGCESettings
 
 logger = logging.getLogger(__name__)
@@ -103,9 +101,17 @@ class BigQueryETL(object):
         query_request = self.gce_service.jobs()
         query_response = query_request.query(projectId=cliques_bq_settings.PROJECT_ID,
                                              body=query_data).execute()
-        # load into dataframe
-        dataframe = query_response_to_dataframe(query_response)
-        return dataframe
+
+        logger.info('Query completed, %s rows returned by jobId %s' %
+                    (query_response['totalRows'], query_response['jobReference']['jobId']))
+
+        if int(query_response['totalRows']) > 0:
+            # load into dataframe
+            dataframe = query_response_to_dataframe(query_response)
+            logger.info('Loaded query result to DataFrame')
+            return dataframe
+        else:
+            return None
 
     def transform(self, dataframe):
         """
@@ -140,9 +146,12 @@ class BigQueryETL(object):
 
     def run(self, **kwargs):
         dataframe = self.extract(**kwargs)
-        dataframe = self.transform(dataframe)
-        result = self.load_to_mongo(dataframe)
-        return result
+        if dataframe is not None:
+            dataframe = self.transform(dataframe)
+            result = self.load_to_mongo(dataframe)
+            return result
+        else:
+            return None
 
 # if __name__ == '__main__':
 #     from cliquesadmin.jsonconfig import JsonConfigParser
