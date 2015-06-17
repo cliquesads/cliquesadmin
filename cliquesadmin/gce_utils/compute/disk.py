@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime
-from time import mktime
 
-from feedparser import _parse_date as parse_date
+from cliquesadmin.misc_utils import rfc3339_to_datetime
 from cliquesadmin.gce_utils.compute import compute_settings
 from cliquesadmin.gce_utils import blocking_call
 
@@ -39,11 +38,6 @@ def make_snapshot(gce_service, disk_name, gce_settings=compute_settings):
     return response
 
 
-def _rfc3339_to_datetime(timestamp):
-    stime = parse_date(timestamp)
-    tfloat = mktime(stime)
-    return datetime.fromtimestamp(tfloat)
-
 @blocking_call
 def delete_snapshot(gce_service, snapshot_name, gce_settings=compute_settings):
     logger.warn('DELETING SNAPSHOT %s, this is not reversible' % snapshot_name)
@@ -71,13 +65,9 @@ def purge_old_snapshots(gce_service, disk_name, snapshots_to_keep=3, gce_setting
     if len(snapshots) > snapshots_to_keep:
         logger.info('Found %s stale snapshots for disk %s, will now try to delete them' %
                     (len(snapshots)-snapshots_to_keep, disk_name))
-        key = lambda k: _rfc3339_to_datetime(k['creationTimestamp'])
+        key = lambda k: rfc3339_to_datetime(k['creationTimestamp'])
         snapshots = sorted(snapshots, key=key, reverse=True)
         old_snapshots = snapshots[snapshots_to_keep:]
         for old_snap in old_snapshots:
             delete_snapshot(gce_service, old_snap['name'], gce_settings=gce_settings)
     return True
-
-# if __name__ == "__main__":
-#     auth_http, gce_service = authenticate_and_build(sys.argv)
-#     # purge_old_snapshots(auth_http, gce_service, 'mysql-server-a1')

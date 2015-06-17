@@ -65,8 +65,20 @@ def query_response_to_dataframe(query_response):
     return df
 
 
-class BigQueryMongoETL(object):
+class BigQueryETL(object):
+    """
+    Basic ETL Job moving data from Google BigQuery to MongoDB.
 
+    - Extracts from BigQuery using BigQuery Query template (Jinja2)
+    - Stores query result into Dataframe
+    - Transforms resulting Dataframe as necessary
+    - Loads transformed Dataframe into MongoDB
+
+    Whole process can be accessed via the `BigQueryMongoETL.run` method
+
+    Base class doesn't transform resulting data at all but provides
+    hook for custom subclasses to perform their own custom transforms
+    """
     def __init__(self, template, gce_settings, mongo_collection):
         self.gce_settings = gce_settings
         self.gce_service = authenticate_and_build_jwt_client(gce_settings)
@@ -107,7 +119,7 @@ class BigQueryMongoETL(object):
         """
         return dataframe
 
-    def load(self, dataframe):
+    def load_to_mongo(self, dataframe):
         """
         Loads a pandas dataframe object into MongoDB collection
 
@@ -123,25 +135,25 @@ class BigQueryMongoETL(object):
                 if isinstance(row[k], pd.tslib.Timestamp):
                     row[k] = row[k].to_datetime()
 
-        result = collection.insert_many(records)
+        result = self.mongo_collection.insert_many(records)
         return result
 
     def run(self, **kwargs):
         dataframe = self.extract(**kwargs)
         dataframe = self.transform(dataframe)
-        result = self.load(dataframe)
+        result = self.load_to_mongo(dataframe)
         return result
 
-if __name__ == '__main__':
-    from cliquesadmin.jsonconfig import JsonConfigParser
-    from pymongo import MongoClient
-
-    config = JsonConfigParser()
-    client = MongoClient(config.get('ETL', 'mongodb', 'host'), config.get('ETL', 'mongodb', 'port'))
-    client.exchange.authenticate(config.get('ETL', 'mongodb', 'user'),
-                                 config.get('ETL', 'mongodb', 'pwd'),
-                                 source=config.get('ETL', 'mongodb', 'db'))
-    collection = client.exchange.test
-    etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, collection)
-    result = etl.run(start=datetime(2015, 6, 1, 0, 0, 0), end=datetime(2015, 6, 15, 0, 0, 0))
-    print result
+# if __name__ == '__main__':
+#     from cliquesadmin.jsonconfig import JsonConfigParser
+#     from pymongo import MongoClient
+#
+#     config = JsonConfigParser()
+#     client = MongoClient(config.get('ETL', 'mongodb', 'host'), config.get('ETL', 'mongodb', 'port'))
+#     client.exchange.authenticate(config.get('ETL', 'mongodb', 'user'),
+#                                  config.get('ETL', 'mongodb', 'pwd'),
+#                                  source=config.get('ETL', 'mongodb', 'db'))
+#     collection = client.exchange.test
+#     etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, collection)
+#     result = etl.run(start=datetime(2015, 6, 1, 0, 0, 0), end=datetime(2015, 6, 15, 0, 0, 0))
+#     print result
