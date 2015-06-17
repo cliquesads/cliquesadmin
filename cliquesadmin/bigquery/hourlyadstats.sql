@@ -1,4 +1,5 @@
 SELECT
+  TIMESTAMP('{{ start }}') AS hour,
   auctions.publisher AS publisher,
   auctions.site AS site,
   auctions.page AS page,
@@ -21,5 +22,17 @@ ON
 LEFT JOIN EACH [ad_events.clicks] AS clicks
 ON
   auctions.impid = clicks.impid
+WHERE
+  auctions.tstamp >= TIMESTAMP('{{ start }}')
+  AND auctions.tstamp < TIMESTAMP('{{ end }}')
 GROUP EACH BY
-  publisher,site,page,placement,advertiser,campaign,creativegroup,creative,pub_clique,adv_clique
+  publisher,
+  site,
+  page,
+  placement,
+  advertiser,
+  campaign,
+  creativegroup,
+  creative,
+  pub_clique,
+  adv_clique

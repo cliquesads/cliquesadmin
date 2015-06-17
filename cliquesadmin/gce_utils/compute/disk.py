@@ -1,10 +1,11 @@
-import sys
 import logging
 from datetime import datetime
 from time import mktime
+
 from feedparser import _parse_date as parse_date
 from cliquesadmin.gce_utils.compute import compute_settings
 from cliquesadmin.gce_utils import blocking_call
+
 
 logger = logging.getLogger(__name__)
 
