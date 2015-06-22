@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 import numpy as np
 import pandas as pd
 from jinja2 import Environment, PackageLoader
@@ -77,11 +78,33 @@ class BigQueryETL(object):
     Base class doesn't transform resulting data at all but provides
     hook for custom subclasses to perform their own custom transforms
     """
-    def __init__(self, template, gce_settings, mongo_collection):
+    def __init__(self, template, gce_settings, query_options=None):
         self.gce_settings = gce_settings
         self.gce_service = authenticate_and_build_jwt_client(gce_settings)
+        self.query_options = query_options
         self.template = jinja_bq_env.get_template(template)
-        self.mongo_collection = mongo_collection
+
+    def run_query(self, rendered_template, query_request, **kwargs):
+        """
+        Hits BigQuery ETL w/ query and returns result
+
+        :param kwargs: passed to template
+        :return:
+        """
+        # TODO: This isn't a comprehensive parsing of query options
+        if self.query_options is not None:
+            # Need to use 'insert' method if destinationTable is specified
+            query_data = self.query_options
+            query_data['query'] = rendered_template
+        else:
+            query_data = {'query': rendered_template}
+
+        query_response = query_request.query(projectId=self.gce_settings.PROJECT_ID,
+                                             body=query_data).execute()
+        logger.info('Query completed, %s rows returned by jobId %s' %
+                    (query_response['totalRows'],
+                     query_response['jobReference']['jobId']))
+        return query_response
 
     def extract(self, **kwargs):
         """
@@ -95,23 +118,25 @@ class BigQueryETL(object):
             if isinstance(kwargs[kw], datetime):
                 kwargs[kw] = kwargs[kw].strftime('%Y-%m-%d %H:%M:%S')
 
-        rendered = self.template.render(**kwargs)
-        query_data = {'query': rendered}
+        # parse query template with provided kwargs
+        rendered_template = self.template.render(**kwargs)
         # TODO: Save response to Cloud Storage as backup?
         query_request = self.gce_service.jobs()
-        query_response = query_request.query(projectId=cliques_bq_settings.PROJECT_ID,
-                                             body=query_data).execute()
+        query_response = self.run_query(rendered_template, query_request, **kwargs)
 
-        logger.info('Query completed, %s rows returned by jobId %s' %
-                    (query_response['totalRows'], query_response['jobReference']['jobId']))
-
-        if int(query_response['totalRows']) > 0:
-            # load into dataframe
-            dataframe = query_response_to_dataframe(query_response)
-            logger.info('Loaded query result to DataFrame')
-            return dataframe
-        else:
-            return None
+        # Only parse response to dataframe if it is non-null, and
+        # if it is a queryResponse vs. job resource (i.e. when returning
+        # asynchronous job).
+        #
+        # If you want to parse async job result into dataframe, use
+        # getQueryResult in runQuery subclass method
+        if query_response['kind'] == 'bigquery#queryResponse':
+            if int(query_response['totalRows']) > 0:
+                # load into dataframe
+                dataframe = query_response_to_dataframe(query_response)
+                logger.info('Loaded query result to DataFrame')
+                return dataframe
+        return None
 
     def transform(self, dataframe):
         """
@@ -125,7 +150,33 @@ class BigQueryETL(object):
         """
         return dataframe
 
-    def load_to_mongo(self, dataframe):
+    def load(self, dataframe):
+        """
+        Hook for subclasses to load data into external datastore.
+
+        Base class just passes dataframe right through.
+        :param dataframe:
+        :return:
+        """
+        return dataframe
+
+    def run(self, **kwargs):
+        dataframe = self.extract(**kwargs)
+        if dataframe is not None:
+            dataframe = self.transform(dataframe)
+            result = self.load(dataframe)
+            return result
+        else:
+            return None
+
+
+class BigQueryMongoETL(BigQueryETL):
+
+    def __init__(self, template, gce_settings, mongo_collection, **kwargs):
+        self.mongo_collection = mongo_collection
+        super(BigQueryMongoETL, self).__init__(template, gce_settings, **kwargs)
+
+    def load(self, dataframe):
         """
         Loads a pandas dataframe object into MongoDB collection
 
@@ -141,28 +192,73 @@ class BigQueryETL(object):
                 if isinstance(row[k], pd.tslib.Timestamp):
                     row[k] = row[k].to_datetime()
 
-        result = self.mongo_collection.insert_many(records)
-        return result
+        return self.mongo_collection.insert_many(records)
 
-    def run(self, **kwargs):
-        dataframe = self.extract(**kwargs)
-        if dataframe is not None:
-            dataframe = self.transform(dataframe)
-            result = self.load_to_mongo(dataframe)
-            return result
+
+class BigQueryIntermediateETL(BigQueryETL):
+
+    def run_query(self, rendered_template, query_request, **kwargs):
+        """
+        Runs query and stores results in a destination table.
+
+        Job is run asynchronously, so
+        :param kwargs: passed to template
+        :return:
+        """
+        SECONDS_TO_SLEEP_BETWEEN_JOB_CALLS = 3
+
+        query_data = self.query_options
+        query_data['query'] = rendered_template
+        # For insert jobs, need to nest options in 'query' sub-object under 'configuration'
+        query_data = {'configuration': {'query': query_data}}
+        job = query_request.insert(projectId=self.gce_settings.PROJECT_ID,
+                                   body=query_data).execute()
+
+        # You can call getQueryResults which will only return when job
+        # is complete, but the results here could be very large so
+        # it's better to just check on the job resource periodically
+        while job['status']['state'] != 'DONE':
+            sleep(SECONDS_TO_SLEEP_BETWEEN_JOB_CALLS)
+            job = self.gce_service.jobs().get(projectId=job['jobReference']['projectId'],
+                                              jobId=job['jobReference']['jobId']).execute()
+
+        # logging stuff
+        statistics = job['statistics']
+        status = job['status']
+        jobReference = job['jobReference']
+        execution_time = (float(statistics['endTime']) - float(statistics['startTime']))/float(1000)
+
+        logger.info('JobId %s status: %s' % (jobReference['jobId'], status['state']))
+        logger.info('Total time to execute: %s' % execution_time)
+        if status.has_key('errorResult'):
+            logger.error('ERRORS encountered: \n %s' % status['errorResult'])
         else:
-            return None
+            if statistics.has_key('query'):
+                logger.info('totalBytesProcessed: %s ' % statistics['query']['totalBytesProcessed'])
+                logger.info('cacheHit: %s ' % statistics['query']['cacheHit'])
+        return job
+
+
 
 # if __name__ == '__main__':
-#     from cliquesadmin.jsonconfig import JsonConfigParser
-#     from pymongo import MongoClient
-#
-#     config = JsonConfigParser()
-#     client = MongoClient(config.get('ETL', 'mongodb', 'host'), config.get('ETL', 'mongodb', 'port'))
-#     client.exchange.authenticate(config.get('ETL', 'mongodb', 'user'),
-#                                  config.get('ETL', 'mongodb', 'pwd'),
-#                                  source=config.get('ETL', 'mongodb', 'db'))
-#     collection = client.exchange.test
-#     etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, collection)
-#     result = etl.run(start=datetime(2015, 6, 1, 0, 0, 0), end=datetime(2015, 6, 15, 0, 0, 0))
-#     print result
+    # from cliquesadmin.jsonconfig import JsonConfigParser
+    # from pymongo import MongoClient
+
+    # config = JsonConfigParser()
+    # client = MongoClient(config.get('ETL', 'mongodb', 'host'), config.get('ETL', 'mongodb', 'port'))
+    # client.exchange.authenticate(config.get('ETL', 'mongodb', 'user'),
+    #                              config.get('ETL', 'mongodb', 'pwd'),
+    #                              source=config.get('ETL', 'mongodb', 'db'))
+    # collection = client.exchange.test
+    # opts = {'destinationTable':
+    #             {
+    #                 'datasetId': 'ad_events',
+    #                 'projectId': cliques_bq_settings.PROJECT_ID,
+    #                 'tableId': 'imp_matched_actions'
+    #             },
+    #         'createDisposition': 'CREATE_AS_NEEDED',
+    #         'writeDisposition': 'WRITE_APPEND'
+    #     }
+    # etl = BigQueryIntermediateETL('imp_matched_actions.sql', cliques_bq_settings, query_options=opts)
+    # result = etl.run(start=datetime(2015, 6, 20, 21, 0, 0), end=datetime(2015, 6, 20, 22, 0, 0), lookback=30)
+    # print result
