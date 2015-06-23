@@ -16,8 +16,8 @@ SELECT
   COUNT(auctions.impid) AS imps,
   COUNT(DISTINCT(auctions.uuid)) AS uniques,
   COUNT(clicks.clickid) AS clicks,
-  SUM(actions.view_conv) AS view_convs,
-  SUM(actions.click_conv) AS click_convs,
+  IF(SUM(actions.view_conv) is null, 0, SUM(actions.view_conv)) AS view_convs,
+  IF(SUM(actions.click_conv) is null, 0, SUM(actions.click_conv)) AS click_convs,
 FROM
   [ad_events.auctions] AS auctions
 INNER JOIN EACH [ad_events.impressions] AS imps
@@ -25,7 +25,7 @@ ON
   auctions.impid = imps.impid
 INNER JOIN EACH [ad_events.auction_stats] as auction_stats
 ON
-  auctions.auctionId = auctionStats.auctionId
+  auctions.auctionId = auction_stats.auctionId
 LEFT JOIN EACH [ad_events.clicks] AS clicks
 ON
   auctions.impid = clicks.impid

@@ -40,7 +40,7 @@ if __name__ == '__main__':
     VIEW_ACTION_LOOKBACK = 30
 
     imp_matched_query_opts = GLOBAL_QUERY_OPTS
-    imp_matched_query_opts['destination_table']['tableId'] = 'imp_matched_actions'
+    imp_matched_query_opts['destinationTable']['tableId'] = 'imp_matched_actions'
     imp_matched_actions_etl = BigQueryIntermediateETL('imp_matched_actions.sql',
                                                       cliques_bq_settings,
                                                       query_options=imp_matched_query_opts)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     CLICK_ACTION_LOOKBACK = 30
 
     click_matched_query_opts = GLOBAL_QUERY_OPTS
-    click_matched_query_opts['destination_table']['tableId'] = 'click_matched_actions'
+    click_matched_query_opts['destinationTable']['tableId'] = 'click_matched_actions'
     imp_matched_actions_etl = BigQueryIntermediateETL('click_matched_actions.sql',
                                                       cliques_bq_settings,
                                                       query_options=click_matched_query_opts)
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # AUCTION_STATS ETL #
     #####################
     auction_query_opts = GLOBAL_QUERY_OPTS
-    auction_query_opts['destination_table']['tableId'] = 'auction_stats'
+    auction_query_opts['destinationTable']['tableId'] = 'auction_stats'
     auction_stats_etl = BigQueryIntermediateETL('auction_stats.sql',
                                                 cliques_bq_settings,
                                                 query_options=auction_query_opts)
