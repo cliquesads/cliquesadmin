@@ -16,54 +16,73 @@ mongo_source_db = config.get('ETL', 'mongodb', 'db')
 client = MongoClient(mongo_host, mongo_port)
 client.exchange.authenticate(mongo_user, mongo_pwd, source=mongo_source_db)
 
+GLOBAL_QUERY_OPTS = {
+    'destinationTable':
+        {
+            'datasetId': 'ad_events',
+            'projectId': cliques_bq_settings.PROJECT_ID,
+        },
+        'createDisposition': 'CREATE_AS_NEEDED',
+        'writeDisposition': 'WRITE_APPEND'
+}
+
+name = 'HourlyAdStats'
+
 if __name__ == '__main__':
-    name = 'HourlyAdStats'
+
     args = parse_hourly_etl_args(name)
+
     logger.info('Beginning %s ETLs for interval %s to %s' % (name, args.start, args.end))
 
-    # IMP_MATCHED_ACTIONS ETL
-    query_opts = {
-        'destinationTable':
-            {
-                'datasetId': 'ad_events',
-                'projectId': cliques_bq_settings.PROJECT_ID,
-                'tableId': 'imp_matched_actions'
-            },
-            'createDisposition': 'CREATE_AS_NEEDED',
-            'writeDisposition': 'WRITE_APPEND'
-    }
+    ###########################
+    # IMP_MATCHED_ACTIONS ETL #
+    ###########################
     VIEW_ACTION_LOOKBACK = 30
+
+    imp_matched_query_opts = GLOBAL_QUERY_OPTS
+    imp_matched_query_opts['destination_table']['tableId'] = 'imp_matched_actions'
     imp_matched_actions_etl = BigQueryIntermediateETL('imp_matched_actions.sql',
                                                       cliques_bq_settings,
-                                                      query_options=query_opts)
+                                                      query_options=imp_matched_query_opts)
     logger.info('Now matching imps to actions, storing in BigQuery')
     imp_matched_result = imp_matched_actions_etl.run(start=args.start,
                                                      end=args.end,
                                                      lookback=VIEW_ACTION_LOOKBACK)
     logger.info('Done')
 
-    # CLICK_MATCHED_ACTIONS ETL
-    query_opts = {
-        'destinationTable':
-            {
-                'datasetId': 'ad_events',
-                'projectId': cliques_bq_settings.PROJECT_ID,
-                'tableId': 'click_matched_actions'
-            },
-            'createDisposition': 'CREATE_AS_NEEDED',
-            'writeDisposition': 'WRITE_APPEND'
-    }
+    #############################
+    # CLICK_MATCHED_ACTIONS ETL #
+    #############################
     CLICK_ACTION_LOOKBACK = 30
+
+    click_matched_query_opts = GLOBAL_QUERY_OPTS
+    click_matched_query_opts['destination_table']['tableId'] = 'click_matched_actions'
     imp_matched_actions_etl = BigQueryIntermediateETL('click_matched_actions.sql',
                                                       cliques_bq_settings,
-                                                      query_options=query_opts)
+                                                      query_options=click_matched_query_opts)
     logger.info('Now matching clicks to actions, storing in BigQuery')
     imp_matched_result = imp_matched_actions_etl.run(start=args.start,
                                                      end=args.end,
                                                      lookback=CLICK_ACTION_LOOKBACK)
     logger.info('Done')
 
-    # LOAD AGGREGATES TO MONGODB
+    #####################
+    # AUCTION_STATS ETL #
+    #####################
+    auction_query_opts = GLOBAL_QUERY_OPTS
+    auction_query_opts['destination_table']['tableId'] = 'auction_stats'
+    auction_stats_etl = BigQueryIntermediateETL('auction_stats.sql',
+                                                cliques_bq_settings,
+                                                query_options=auction_query_opts)
+
+    logger.info('Now creating auction stats, containing bid density & clearprice')
+    auction_stats_result = auction_stats_etl.run(start=args.start,
+                                                 end=args.end)
+    logger.info('Done')
+
+    ##############################
+    # LOAD AGGREGATES TO MONGODB #
+    ##############################
     HOURLY_ADSTAT_COLLECTION = client.exchange.test
     etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
     logger.info('Now loading aggregates to MongoDB')
