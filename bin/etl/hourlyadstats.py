@@ -83,7 +83,7 @@ if __name__ == '__main__':
     ##############################
     # LOAD AGGREGATES TO MONGODB #
     ##############################
-    HOURLY_ADSTAT_COLLECTION = client.exchange.test
+    HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstat
     etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
     logger.info('Now loading aggregates to MongoDB')
     result = etl.run(start=args.start, end=args.end)
