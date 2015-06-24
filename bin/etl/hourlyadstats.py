@@ -13,6 +13,9 @@ mongo_user = config.get('ETL', 'mongodb', 'user')
 mongo_pwd = config.get('ETL', 'mongodb', 'pwd')
 mongo_source_db = config.get('ETL', 'mongodb', 'db')
 
+view_lookback = config.get('ETL', 'action_lookback', 'view')
+click_lookback = config.get('ETL', 'action_lookback', 'click')
+
 client = MongoClient(mongo_host, mongo_port)
 client.exchange.authenticate(mongo_user, mongo_pwd, source=mongo_source_db)
 
@@ -37,8 +40,6 @@ if __name__ == '__main__':
     ###########################
     # IMP_MATCHED_ACTIONS ETL #
     ###########################
-    VIEW_ACTION_LOOKBACK = 30
-
     imp_matched_query_opts = GLOBAL_QUERY_OPTS
     imp_matched_query_opts['destinationTable']['tableId'] = 'imp_matched_actions'
     imp_matched_actions_etl = BigQueryIntermediateETL('imp_matched_actions.sql',
@@ -47,14 +48,12 @@ if __name__ == '__main__':
     logger.info('Now matching imps to actions, storing in BigQuery')
     imp_matched_result = imp_matched_actions_etl.run(start=args.start,
                                                      end=args.end,
-                                                     lookback=VIEW_ACTION_LOOKBACK)
+                                                     lookback=view_lookback)
     logger.info('Done')
 
     #############################
     # CLICK_MATCHED_ACTIONS ETL #
     #############################
-    CLICK_ACTION_LOOKBACK = 30
-
     click_matched_query_opts = GLOBAL_QUERY_OPTS
     click_matched_query_opts['destinationTable']['tableId'] = 'click_matched_actions'
     imp_matched_actions_etl = BigQueryIntermediateETL('click_matched_actions.sql',
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     logger.info('Now matching clicks to actions, storing in BigQuery')
     imp_matched_result = imp_matched_actions_etl.run(start=args.start,
                                                      end=args.end,
-                                                     lookback=CLICK_ACTION_LOOKBACK)
+                                                     lookback=click_lookback)
     logger.info('Done')
 
     #####################
