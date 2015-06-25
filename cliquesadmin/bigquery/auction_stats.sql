@@ -8,43 +8,60 @@ SELECT
   IF(clearprice IS NULL, max_bid, clearprice) AS clearprice
 FROM (
   SELECT
-    auctions.tstamp as tstamp,
+    auctions.tstamp AS tstamp,
     auctions.auctionId AS auctionId,
     auctions.uuid AS uuid,
     auctions.impid AS impid,
     COUNT(bids.bidid) AS num_bids,
     MAX(bids.bid) AS max_bid,
-    MAX(IF(max_bids.max_bid IS NULL, bids.bid, NULL) + 0.01) AS clearprice
+    MAX(IF(max_bids.bid IS NULL, bids.bid, NULL) + 0.01) AS clearprice
   FROM
     [ad_events.auctions] AS auctions
+  INNER JOIN EACH [ad_events.impressions] AS impressions
+  ON
+    auctions.impid = impressions.impid
   INNER JOIN EACH [ad_events.bids] AS bids
   ON
     auctions.auctionId = bids.auctionId
--- This might seem pretty fucked, but it's the only way I could figure out 2nd price
--- using raw BigQuery SQL (rather than post-processing in Python). Essentially, left join
--- of sub-select containing only max bids for each auction will create a bunch of NULL
--- entries in this field for all non-winning bids.  I then take the max of all bids
--- for which this field is NULL to get the second price.
--- You may be tempted to use the NTH aggregation function, but it won't work for
--- distributed queries, i.e. any of them
+    AND impressions.adv_clique = bids.adv_clique
+    -- This might seem pretty fucked, but it's the only way I could figure out 2nd price
+    -- using raw BigQuery SQL (rather than post-processing in Python). Essentially, left join
+    -- of sub-select containing only max bids for each auction will create a bunch of NULL
+    -- entries in this field for all non-winning bids.  I then take the max of all bids
+    -- for which this field is NULL to get the second price.
+    -- You may be tempted to use the NTH aggregation function, but it won't work for
+    -- distributed queries, i.e. any of them
   LEFT JOIN EACH (
     SELECT
-      auctionId,
-      MAX(bid) AS max_bid
+      b.auctionId AS auctionId,
+      b.bidid AS bidid,
+      b.adv_clique AS adv_clique,
+      b.bid AS bid
     FROM
-      [ad_events.bids]
--- could put WHERE clause here to make join table smaller but edge case of auctions
--- happening as the hour ticks over bothers me, i.e. bids which happen in next hour
--- after auction might not get joined here and lost forever
-    GROUP BY
-      auctionId) AS max_bids
+      [ad_events.bids] AS b
+      -- could put WHERE clause here to make join table smaller but edge case of auctions
+      -- happening as the hour ticks over bothers me, i.e. bids which happen in next hour
+      -- after auction might not get joined here and lost forever
+    INNER JOIN (
+      SELECT
+        auctionId,
+        adv_clique,
+        MAX(bid) AS max_bid
+      FROM
+        [ad_events.bids]
+      GROUP BY
+        auctionId,
+        adv_clique) AS m
+    ON
+      b.auctionId = m.auctionId
+      AND b.adv_clique = m.adv_clique) AS max_bids
   ON
-    auctions.auctionId = max_bids.auctionId
-    AND bids.bid = max_bids.max_bid
-  WHERE auctions.tstamp >= TIMESTAMP('{{ start }}') AND
-        auctions.tstamp < TIMESTAMP('{{ end }}')
+    bids.bidid = max_bids.bidid
+  WHERE
+    auctions.tstamp >= TIMESTAMP('2015-06-23 18:00:00')
+    AND auctions.tstamp < TIMESTAMP('2015-06-23 19:00:00')
   GROUP BY
     tstamp,
     auctionId,
     uuid,
-    impid )
+    impid)
