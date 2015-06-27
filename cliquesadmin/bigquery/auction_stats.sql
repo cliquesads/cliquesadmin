@@ -58,8 +58,8 @@ FROM (
   ON
     bids.bidid = max_bids.bidid
   WHERE
-    auctions.tstamp >= TIMESTAMP('2015-06-23 18:00:00')
-    AND auctions.tstamp < TIMESTAMP('2015-06-23 19:00:00')
+    auctions.tstamp >= TIMESTAMP('{{ start }}')
+    AND auctions.tstamp < TIMESTAMP('{{ end }}')
   GROUP BY
     tstamp,
     auctionId,
