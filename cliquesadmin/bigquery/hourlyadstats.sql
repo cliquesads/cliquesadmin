@@ -11,7 +11,7 @@ SELECT
   auctions.pub_clique AS pub_clique,
   imps.adv_clique AS adv_clique,
   actions.actionbeacon as actionbeacon,
-  SUM(auction_stats.num_bids) AS num_bids,
+  SUM(auction_stats.num_bids) AS bids,
   SUM(auction_stats.clearprice)/1000 as spend,
   COUNT(auctions.impid) AS imps,
   COUNT(DISTINCT(auctions.uuid)) AS uniques,
