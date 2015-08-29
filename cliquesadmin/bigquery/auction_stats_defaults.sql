@@ -11,7 +11,7 @@ FROM
 WHERE
   auctions.tstamp >= TIMESTAMP('{{ start }}')
   AND auctions.tstamp < TIMESTAMP('{{ end }}')
-  AND auctions.level = 'error'
+  AND auctions.level == 'error'
 GROUP BY
   tstamp,
   auctionId,
