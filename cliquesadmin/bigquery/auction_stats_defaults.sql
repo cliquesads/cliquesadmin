@@ -4,8 +4,8 @@ SELECT
   auctions.uuid AS uuid,
   auctions.impid AS impid,
   0 as num_bids,
-  0 as max_bid,
-  0 as clearprice
+  0.0 as max_bid,
+  0.0 as clearprice
 FROM
   [ad_events.auctions] AS auctions
 WHERE
