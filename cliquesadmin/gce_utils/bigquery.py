@@ -98,9 +98,19 @@ class BigQueryETL(object):
             query_data['query'] = rendered_template
         else:
             query_data = {'query': rendered_template}
+        query_data = {'configuration': {'query': query_data}}
 
-        query_response = query_request.query(projectId=self.gce_settings.PROJECT_ID,
-                                             body=query_data).execute()
+        # Insert job and then wait for it to be complete
+        job_response = query_request.insert(projectId=self.gce_settings.PROJECT_ID,
+                                            body=query_data).execute()
+        query_response = query_request.getQueryResults(projectId=self.gce_settings.PROJECT_ID,
+                                                       jobId=job_response['jobReference']['jobId']).execute()
+
+        while not query_response['jobComplete']:
+            query_response = query_request.getQueryResults(projectId=self.gce_settings.PROJECT_ID,
+                                                           jobId=job_response['jobReference']['jobId']).execute()
+            sleep(1)
+
         logger.info('Query completed, %s rows returned by jobId %s' %
                     (query_response['totalRows'],
                      query_response['jobReference']['jobId']))
@@ -130,7 +140,7 @@ class BigQueryETL(object):
         #
         # If you want to parse async job result into dataframe, use
         # getQueryResult in runQuery subclass method
-        if query_response['kind'] == 'bigquery#queryResponse':
+        if query_response['kind'] == 'bigquery#getQueryResultsResponse':
             if int(query_response['totalRows']) > 0:
                 # load into dataframe
                 dataframe = query_response_to_dataframe(query_response)
