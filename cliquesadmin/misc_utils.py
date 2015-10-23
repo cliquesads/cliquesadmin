@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import argparse
 from time import mktime
 from feedparser import _parse_date as parse_date
@@ -27,10 +27,11 @@ def parse_hourly_etl_args(etl_name):
                         type=datetimearg)
     args = parser.parse_args()
     now = datetime.utcnow()
+    end = datetime(now.year, now.month, now.day, now.hour, 0, 0)
     if args.start is None:
-        args.start = datetime(now.year, now.month, now.day, now.hour - 1, 0, 0)
+        args.start = end - timedelta(hours=1)
     if args.end is None:
-        args.end = datetime(now.year, now.month, now.day, now.hour, 0, 0)
+        args.end = end
 
     if args.start > args.end:
         raise ValueError('Start cannot be after end')
