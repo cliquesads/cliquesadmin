@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 
 from cliquesadmin import logger
+from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event
 from cliquesadmin.misc_utils import parse_hourly_etl_args
 from cliquesadmin.jsonconfig import JsonConfigParser
 from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, BigQueryIntermediateETL, cliques_bq_settings
@@ -106,5 +107,11 @@ if __name__ == '__main__':
         else:
             logger.info('No rows to insert, ETL complete.')
     except:
+        # Trigger incident in PagerDuty, then write out to log file
+        api_key = config.get('PagerDuty', 'api_key')
+        subdomain = config.get('PagerDuty', 'subdomain')
+        service_key = config.get('PagerDuty', 'service_key')
+        stacktrace_to_pd_event(subdomain, api_key, service_key)
         logger.exception('Uncaught exception while running ETL!')
         raise
+
