@@ -54,7 +54,8 @@ FROM (
         adv_clique) AS m
     ON
       b.auctionId = m.auctionId
-      AND b.adv_clique = m.adv_clique) AS max_bids
+      AND b.adv_clique = m.adv_clique
+      AND b.bid = m.max_bid) AS max_bids
   ON
     bids.bidid = max_bids.bidid
   WHERE
