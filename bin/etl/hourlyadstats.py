@@ -114,4 +114,3 @@ if __name__ == '__main__':
         stacktrace_to_pd_event(subdomain, api_key, service_key)
         logger.exception('Uncaught exception while running ETL!')
         raise
-
