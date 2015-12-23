@@ -1,8 +1,12 @@
+"""
+!!!!!! DO NOT RUN THIS IN PRODUCTION !!!!!
+SHOULD ONLY BE RUN ON AN AS_NEEDED BASIS
+"""
+
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 from cliquesadmin import logger
 from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
-from cliquesadmin.misc_utils import parse_hourly_etl_args
 from cliquesadmin.jsonconfig import JsonConfigParser
 from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, BigQueryIntermediateETL, cliques_bq_settings
 
