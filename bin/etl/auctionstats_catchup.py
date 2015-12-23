@@ -59,15 +59,15 @@ if __name__ == '__main__':
         #################################
         # AUCTION_STATS DEFAULT ADS ETL #
         #################################
-        auction_stats_defaults_etl = BigQueryIntermediateETL('auction_stats_defaults.sql',
-                                                             cliques_bq_settings,
-                                                             query_options=auction_query_opts)
-
-        logger.info('Now creating auction stats for all errored auctions (i.e. auctions w/ no bids)')
-        auction_stats_defaults_result = auction_stats_defaults_etl.run(start=args.start,
-                                                                       end=args.end,
-                                                                       error_callback=pd_error_callback)
-        logger.info('Done')
+        # auction_stats_defaults_etl = BigQueryIntermediateETL('auction_stats_defaults.sql',
+        #                                                      cliques_bq_settings,
+        #                                                      query_options=auction_query_opts)
+        #
+        # logger.info('Now creating auction stats for all errored auctions (i.e. auctions w/ no bids)')
+        # auction_stats_defaults_result = auction_stats_defaults_etl.run(start=args.start,
+        #                                                                end=args.end,
+        #                                                                error_callback=pd_error_callback)
+        # logger.info('Done')
 
         ########################################
         # DELETE INVALID AGGREGATES TO MONGODB #
