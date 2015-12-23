@@ -42,7 +42,7 @@ FROM (
       -- could put WHERE clause here to make join table smaller but edge case of auctions
       -- happening as the hour ticks over bothers me, i.e. bids which happen in next hour
       -- after auction might not get joined here and lost forever
-    INNER JOIN (
+    INNER JOIN EACH (
       SELECT
         auctionId,
         adv_clique,
