@@ -84,7 +84,7 @@ class BigQueryETL(object):
         self.query_options = query_options
         self.template = jinja_bq_env.get_template(template)
 
-    def run_query(self, rendered_template, query_request, **kwargs):
+    def run_query(self, rendered_template, query_request, error_callback=None, **kwargs):
         """
         Hits BigQuery ETL w/ query and returns result
 
@@ -110,6 +110,14 @@ class BigQueryETL(object):
             query_response = query_request.getQueryResults(projectId=self.gce_settings.PROJECT_ID,
                                                            jobId=job_response['jobReference']['jobId']).execute()
             sleep(1)
+
+        # Handle any errors in job
+        if query_response.has_key('errors'):
+            error_msg = 'ERRORS encountered in BigQuery JobId %s: \n %s' % \
+                        (job_response['jobReference']['jobId'], query_response['errors'])
+            logger.error(error_msg)
+            if error_callback:
+                error_callback(error_msg)
 
         logger.info('Query completed, %s rows returned by jobId %s' %
                     (query_response['totalRows'],
@@ -207,7 +215,7 @@ class BigQueryMongoETL(BigQueryETL):
 
 class BigQueryIntermediateETL(BigQueryETL):
 
-    def run_query(self, rendered_template, query_request, **kwargs):
+    def run_query(self, rendered_template, query_request, error_callback=None, **kwargs):
         """
         Runs query and stores results in a destination table.
 
@@ -240,8 +248,13 @@ class BigQueryIntermediateETL(BigQueryETL):
 
         logger.info('JobId %s status: %s' % (jobReference['jobId'], status['state']))
         logger.info('Total time to execute: %s' % execution_time)
+
+        # Handle any errors in job
         if status.has_key('errorResult'):
-            logger.error('ERRORS encountered: \n %s' % status['errorResult'])
+            error_msg = 'ERRORS encountered in BigQuery JobId %s: \n %s' % (jobReference['jobId'], status['errorResult'])
+            logger.error(error_msg)
+            if error_callback:
+                error_callback(error_msg)
         else:
             if statistics.has_key('query'):
                 logger.info('totalBytesProcessed: %s ' % statistics['query']['totalBytesProcessed'])

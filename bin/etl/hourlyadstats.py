@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 
 from cliquesadmin import logger
-from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event
+from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
 from cliquesadmin.misc_utils import parse_hourly_etl_args
 from cliquesadmin.jsonconfig import JsonConfigParser
 from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, BigQueryIntermediateETL, cliques_bq_settings
@@ -16,6 +16,11 @@ mongo_source_db = config.get('ETL', 'mongodb', 'db')
 
 view_lookback = config.get('ETL', 'action_lookback', 'view')
 click_lookback = config.get('ETL', 'action_lookback', 'click')
+
+pd_api_key = config.get('PagerDuty', 'api_key')
+pd_subdomain = config.get('PagerDuty', 'subdomain')
+pd_service_key = config.get('PagerDuty', 'service_key')
+pd_error_callback = create_pd_event_wrapper(pd_subdomain, pd_api_key, pd_service_key)
 
 client = MongoClient(mongo_host, mongo_port)
 client.exchange.authenticate(mongo_user, mongo_pwd, source=mongo_source_db)
@@ -50,6 +55,7 @@ if __name__ == '__main__':
         logger.info('Now matching imps to actions, storing in BigQuery')
         imp_matched_result = imp_matched_actions_etl.run(start=args.start,
                                                          end=args.end,
+                                                         error_callback=pd_error_callback,
                                                          lookback=view_lookback)
         logger.info('Done')
 
@@ -64,6 +70,7 @@ if __name__ == '__main__':
         logger.info('Now matching clicks to actions, storing in BigQuery')
         imp_matched_result = imp_matched_actions_etl.run(start=args.start,
                                                          end=args.end,
+                                                         error_callback=pd_error_callback,
                                                          lookback=click_lookback)
         logger.info('Done')
 
@@ -78,7 +85,8 @@ if __name__ == '__main__':
 
         logger.info('Now creating auction stats, containing bid density & clearprice')
         auction_stats_result = auction_stats_etl.run(start=args.start,
-                                                     end=args.end)
+                                                     end=args.end,
+                                                     error_callback=pd_error_callback)
         logger.info('Done')
 
         #################################
@@ -90,7 +98,8 @@ if __name__ == '__main__':
 
         logger.info('Now creating auction stats for all errored auctions (i.e. auctions w/ no bids)')
         auction_stats_defaults_result = auction_stats_defaults_etl.run(start=args.start,
-                                                                       end=args.end)
+                                                                       end=args.end,
+                                                                       error_callback=pd_error_callback)
         logger.info('Done')
 
         ##############################
@@ -99,7 +108,7 @@ if __name__ == '__main__':
         HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
         etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading aggregates to MongoDB')
-        result = etl.run(start=args.start, end=args.end)
+        result = etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
         if result is not None:
             logger.info('Inserted %s documents into collection %s' %
                         (len(result.inserted_ids), HOURLY_ADSTAT_COLLECTION.full_name))
@@ -108,9 +117,6 @@ if __name__ == '__main__':
             logger.info('No rows to insert, ETL complete.')
     except:
         # Trigger incident in PagerDuty, then write out to log file
-        api_key = config.get('PagerDuty', 'api_key')
-        subdomain = config.get('PagerDuty', 'subdomain')
-        service_key = config.get('PagerDuty', 'service_key')
-        stacktrace_to_pd_event(subdomain, api_key, service_key)
+        stacktrace_to_pd_event(pd_subdomain, pd_api_key, pd_service_key)
         logger.exception('Uncaught exception while running ETL!')
         raise
