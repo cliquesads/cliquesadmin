@@ -61,6 +61,7 @@ FROM (
   WHERE
     auctions.tstamp >= TIMESTAMP('{{ start }}')
     AND auctions.tstamp < TIMESTAMP('{{ end }}')
+    AND auctions.level == 'info'
   GROUP BY
     tstamp,
     auctionId,
