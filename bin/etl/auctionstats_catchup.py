@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from cliquesadmin import logger
 from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
 from cliquesadmin.jsonconfig import JsonConfigParser
-from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, BigQueryIntermediateETL, cliques_bq_settings
+from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, cliques_bq_settings
 
 config = JsonConfigParser()
 
@@ -40,9 +40,8 @@ name = 'AuctionStats Catchup'
 if __name__ == '__main__':
 
     # args = parse_hourly_etl_args(name)
-    datetimes = [datetime(2015, 12, 22, h) for h in range(10, 15)]
-    datetimes += [datetime(2015, 12, 22, h) for h in range(16, 24)]
-    datetimes += [datetime(2015, 12, 23, h) for h in range(18)]
+    datetimes = [datetime(2015, 12, n, h) for h in range(0, 23) for n in range(1, 30)]
+    datetimes += [datetime(2016, 1, n, h) for h in range(0, 23) for n in range(1, 23)]
 
     for dt in datetimes:
         start = dt
@@ -55,29 +54,16 @@ if __name__ == '__main__':
             #####################
             # AUCTION_STATS ETL #
             #####################
-            auction_query_opts = GLOBAL_QUERY_OPTS
-            auction_query_opts['destinationTable']['tableId'] = 'auction_stats'
-            auction_stats_etl = BigQueryIntermediateETL('auction_stats.sql',
-                                                        cliques_bq_settings,
-                                                        query_options=auction_query_opts)
-
-            logger.info('Now creating auction stats, containing bid density & clearprice')
-            auction_stats_result = auction_stats_etl.run(start=start,
-                                                         end=end,
-                                                         error_callback=pd_error_callback)
-            logger.info('Done')
-
-            #################################
-            # AUCTION_STATS DEFAULT ADS ETL #
-            #################################
-            # auction_stats_defaults_etl = BigQueryIntermediateETL('auction_stats_defaults.sql',
-            #                                                      cliques_bq_settings,
-            #                                                      query_options=auction_query_opts)
+            # auction_query_opts = GLOBAL_QUERY_OPTS
+            # auction_query_opts['destinationTable']['tableId'] = 'auction_stats'
+            # auction_stats_etl = BigQueryIntermediateETL('auction_stats.sql',
+            #                                             cliques_bq_settings,
+            #                                             query_options=auction_query_opts)
             #
-            # logger.info('Now creating auction stats for all errored auctions (i.e. auctions w/ no bids)')
-            # auction_stats_defaults_result = auction_stats_defaults_etl.run(start=args.start,
-            #                                                                end=args.end,
-            #                                                                error_callback=pd_error_callback)
+            # logger.info('Now creating auction stats, containing bid density & clearprice')
+            # auction_stats_result = auction_stats_etl.run(start=start,
+            #                                              end=end,
+            #                                              error_callback=pd_error_callback)
             # logger.info('Done')
 
             ########################################
