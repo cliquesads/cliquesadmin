@@ -2,3 +2,4 @@
 . $HOME/repositories/cliquesadmin/venv/bin/activate
 PYTHONPATH=$HOME'/repositories/cliquesadmin'
 export PYTHONPATH
+export ENV=production
