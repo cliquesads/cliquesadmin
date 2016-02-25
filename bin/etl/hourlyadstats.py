@@ -106,15 +106,29 @@ if __name__ == '__main__':
         # LOAD AGGREGATES TO MONGODB #
         ##############################
         HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
-        etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        main_etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading aggregates to MongoDB')
-        result = etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
+        result = main_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
         if result is not None:
             logger.info('Inserted %s documents into collection %s' %
                         (len(result.inserted_ids), HOURLY_ADSTAT_COLLECTION.full_name))
-            logger.info('%s ETL Complete' % name)
+            logger.info('%s Primary ETL Complete' % name)
         else:
-            logger.info('No rows to insert, ETL complete.')
+            logger.info('No rows to insert, Primary ETL complete.')
+
+        ##############################################
+        # LOAD DEFAULT AUCTION AGGREGATES TO MONGODB #
+        ##############################################
+        defaults_etl = BigQueryMongoETL('auction_defaults.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        logger.info('Now loading auction default aggregates to MongoDB')
+        new_result = defaults_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
+        if new_result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(new_result.inserted_ids), HOURLY_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Auction Defaults ETL Complete' % name)
+        else:
+            logger.info('No rows to insert, Auction Defaults ETL complete.')
+
     except:
         # Trigger incident in PagerDuty, then write out to log file
         stacktrace_to_pd_event(pd_subdomain, pd_api_key, pd_service_key)
