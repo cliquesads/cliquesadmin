@@ -102,12 +102,12 @@ if __name__ == '__main__':
                                                                        error_callback=pd_error_callback)
         logger.info('Done')
 
-        ##############################
-        # LOAD AGGREGATES TO MONGODB #
-        ##############################
+        ##########################################
+        # LOAD IMP & CLICK AGGREGATES TO MONGODB #
+        ##########################################
         HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
-        main_etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
-        logger.info('Now loading aggregates to MongoDB')
+        main_etl = BigQueryMongoETL('hourlyadstats_imps_clicks.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        logger.info('Now loading imps and clicks aggregates to MongoDB')
         result = main_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
         if result is not None:
             logger.info('Inserted %s documents into collection %s' %
@@ -115,6 +115,19 @@ if __name__ == '__main__':
             logger.info('%s Primary ETL Complete' % name)
         else:
             logger.info('No rows to insert, Primary ETL complete.')
+
+        #####################################
+        # LOAD ACTION AGGREGATES TO MONGODB #
+        #####################################
+        actions_etl = BigQueryMongoETL('hourlyadstats_actions.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        logger.info('Now loading matched action aggregates to MongoDB')
+        result = actions_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
+        if result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(result.inserted_ids), HOURLY_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Actions ETL Complete' % name)
+        else:
+            logger.info('No rows to insert, Actions ETL complete.')
 
         ##############################################
         # LOAD DEFAULT AUCTION AGGREGATES TO MONGODB #

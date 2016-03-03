@@ -13,7 +13,7 @@ SELECT
   FIRST(imps.campaign) AS campaign,
   FIRST(imps.creativegroup) AS creativegroup,
   FIRST(imps.creative) AS creative,
-  FIRST(imps.adv_clique) AS creative,
+  FIRST(imps.adv_clique) AS adv_clique,
   FIRST(auctions.publisher) AS publisher,
   FIRST(auctions.site) AS site,
   FIRST(auctions.page) AS page,
