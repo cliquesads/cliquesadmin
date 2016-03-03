@@ -17,9 +17,9 @@ SELECT
     0 as uniques,
     0 as clicks,
     SUM(IF(c.click_tstamp IS NULL
-        OR c.click_tstamp <= i.imp_tstamp, 1, 0)) AS view_conv,
+        OR c.click_tstamp <= i.imp_tstamp, 1, 0)) AS view_convs,
     SUM(IF(c.click_tstamp IS NOT NULL
-        AND c.click_tstamp > i.imp_tstamp, 1, 0)) AS click_conv,
+        AND c.click_tstamp > i.imp_tstamp, 1, 0)) AS click_convs,
   FROM
     [ad_events.imp_matched_actions] AS i
   OUTER JOIN EACH [ad_events.click_matched_actions] AS c
