@@ -1,16 +1,21 @@
 SELECT
-  clicks.tstamp AS click_tstamp,
-  matched_actions.tstamp AS action_tstamp,
-  matched_actions.uuid AS uuid,
+  FIRST(clicks.tstamp) AS click_tstamp,
+  FIRST(matched_actions.tstamp) AS action_tstamp,
+  FIRST(matched_actions.uuid) AS uuid,
   matched_actions.actionid AS actionid,
-  clicks.impid AS impid,
-  clicks.clickid AS clickid,
-  matched_actions.advertiser AS advertiser,
-  clicks.campaign AS campaign,
-  clicks.creativegroup AS creativegroup,
-  clicks.creative AS creative,
-  matched_actions.actionbeacon AS actionbeacon,
-  matched_actions.value AS value
+  FIRST(clicks.impid) AS impid,
+  FIRST(clicks.clickid) AS clickid,
+  FIRST(matched_actions.advertiser) AS advertiser,
+  FIRST(clicks.campaign) AS campaign,
+  FIRST(clicks.creativegroup) AS creativegroup,
+  FIRST(clicks.creative) AS creative,
+  FIRST(matched_actions.actionbeacon) AS actionbeacon,
+  FIRST(matched_actions.value) AS value,
+  FIRST(auctions.publisher) AS publisher,
+  FIRST(auctions.site) AS site,
+  FIRST(auctions.page) AS page,
+  FIRST(auctions.placement) AS placement,
+  FIRST(auctions.pub_clique) AS pub_clique
 FROM (
     SELECT
       inner_actions.actionid AS actionid,
@@ -53,9 +58,29 @@ FROM (
       advertiser,
       actionbeacon,
       value) AS matched_actions
-
-INNER JOIN EACH [ad_events.clicks] AS clicks
+-- Join to clicks on uuid, advertiser and timestamp
+-- inner select for matched_actions only retrieves max timestamp of matched click
+-- so need to re-join to clicks to get advertiser data.
+INNER JOIN EACH (
+  SELECT
+    *
+  FROM
+    [ad_events.clicks]
+  WHERE
+    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS clicks
 ON
   matched_actions.click_tstamp = clicks.tstamp
   AND matched_actions.uuid = clicks.uuid
   AND matched_actions.advertiser = clicks.advertiser
+-- Join auctions to get publisher data
+INNER JOIN EACH (
+  SELECT
+    *
+  FROM
+    [ad_events.auctions]
+  WHERE
+    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS auctions
+ON
+  clicks.impid = auctions.impid
+GROUP BY
+  actionid
