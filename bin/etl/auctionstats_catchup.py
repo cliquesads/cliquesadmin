@@ -40,8 +40,7 @@ name = 'AuctionStats Catchup'
 if __name__ == '__main__':
 
     # args = parse_hourly_etl_args(name)
-    datetimes = [datetime(2015, 12, n, h) for h in range(0, 23) for n in range(1, 30)]
-    datetimes += [datetime(2016, 1, n, h) for h in range(0, 23) for n in range(1, 23)]
+    datetimes = [datetime(2016, 3, 2, h) for h in range(0, 24)]
 
     for dt in datetimes:
         start = dt
@@ -69,16 +68,17 @@ if __name__ == '__main__':
             ########################################
             # DELETE INVALID AGGREGATES TO MONGODB #
             ########################################
-            logger.info('Now deleting invalid aggregate results for this hour in MongoDB HourlyAdStats')
-            HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
-            result = HOURLY_ADSTAT_COLLECTION.delete_many({'hour': start})
-            logger.info('Successfully deleted %s rows' % result.deleted_count)
+            # logger.info('Now deleting invalid aggregate results for this hour in MongoDB HourlyAdStats')
+            # HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
+            # result = HOURLY_ADSTAT_COLLECTION.delete_many({'hour': start})
+            # logger.info('Successfully deleted %s rows' % result.deleted_count)
 
             ##############################
             # LOAD AGGREGATES TO MONGODB #
             ##############################
-            etl = BigQueryMongoETL('hourlyadstats.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
-            logger.info('Now loading aggregates to MongoDB')
+            HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
+            etl = BigQueryMongoETL('hourlyadstats_actions.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+            logger.info('Now loading action aggregates to MongoDB')
             result = etl.run(start=start, end=end, error_callback=pd_error_callback)
             if result is not None:
                 logger.info('Inserted %s documents into collection %s' %
