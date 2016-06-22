@@ -40,7 +40,8 @@ name = 'AuctionStats Catchup'
 if __name__ == '__main__':
 
     # args = parse_hourly_etl_args(name)
-    datetimes = [datetime(2016, 3, 2, h) for h in range(0, 24)]
+    datetimes = [datetime(2016, 3, n, h) for h in range(0, 24) for n in range(1, 3)]
+    datetimes += [datetime(2016, 3, 3, h) for h in range(0, 6)]
 
     for dt in datetimes:
         start = dt

@@ -10,6 +10,7 @@ SYNC = [
     'publishers',
     'organizations',
     'users',
+    'payments',
     'accesscodes',
     'termsandconditions',
     'users'
