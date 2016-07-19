@@ -11,8 +11,10 @@ SYNC = [
     'organizations',
     'users',
     'payments',
+    'insertionorders'
     'accesscodes',
     'termsandconditions',
+    'demohourlyadstats'
     'users'
 ]
 
