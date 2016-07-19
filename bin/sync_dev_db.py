@@ -14,7 +14,7 @@ SYNC = [
     'insertionorders'
     'accesscodes',
     'termsandconditions',
-    'demohourlyadstats'
+    'demohourlyadstats',
     'users'
 ]
 
