@@ -15,7 +15,8 @@ SYNC = [
     'accesscodes',
     'termsandconditions',
     'demohourlyadstats',
-    'users'
+    'users',
+    'screenshots'
 ]
 
 # Aggregates will only have latest 2000 documents synced
