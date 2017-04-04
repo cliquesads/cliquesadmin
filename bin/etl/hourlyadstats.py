@@ -49,7 +49,7 @@ if __name__ == '__main__':
         ###########################
         imp_matched_query_opts = GLOBAL_QUERY_OPTS
         imp_matched_query_opts['destinationTable']['tableId'] = 'imp_matched_actions'
-        imp_matched_actions_etl = BigQueryIntermediateETL('imp_matched_actions.sql',
+        imp_matched_actions_etl = BigQueryIntermediateETL('intermediates/imp_matched_actions.sql',
                                                           cliques_bq_settings,
                                                           query_options=imp_matched_query_opts)
         logger.info('Now matching imps to actions, storing in BigQuery')
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         #############################
         click_matched_query_opts = GLOBAL_QUERY_OPTS
         click_matched_query_opts['destinationTable']['tableId'] = 'click_matched_actions'
-        imp_matched_actions_etl = BigQueryIntermediateETL('click_matched_actions.sql',
+        imp_matched_actions_etl = BigQueryIntermediateETL('intermediates/click_matched_actions.sql',
                                                           cliques_bq_settings,
                                                           query_options=click_matched_query_opts)
         logger.info('Now matching clicks to actions, storing in BigQuery')
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         #####################
         auction_query_opts = GLOBAL_QUERY_OPTS
         auction_query_opts['destinationTable']['tableId'] = 'auction_stats'
-        auction_stats_etl = BigQueryIntermediateETL('auction_stats.sql',
+        auction_stats_etl = BigQueryIntermediateETL('intermediates/auction_stats.sql',
                                                     cliques_bq_settings,
                                                     query_options=auction_query_opts)
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
         #################################
         # AUCTION_STATS DEFAULT ADS ETL #
         #################################
-        auction_stats_defaults_etl = BigQueryIntermediateETL('auction_stats_defaults.sql',
+        auction_stats_defaults_etl = BigQueryIntermediateETL('intermediates/auction_stats_defaults.sql',
                                                              cliques_bq_settings,
                                                              query_options=auction_query_opts)
 
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         # LOAD IMP & CLICK AGGREGATES TO MONGODB #
         ##########################################
         HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
-        main_etl = BigQueryMongoETL('hourlyadstats_imps_clicks.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        main_etl = BigQueryMongoETL('hourlyadstats/hourlyadstats_imps_clicks.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading imps and clicks aggregates to MongoDB')
         result = main_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
         if result is not None:
@@ -119,7 +119,7 @@ if __name__ == '__main__':
         #####################################
         # LOAD ACTION AGGREGATES TO MONGODB #
         #####################################
-        actions_etl = BigQueryMongoETL('hourlyadstats_actions.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        actions_etl = BigQueryMongoETL('hourlyadstats/hourlyadstats_actions.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading matched action aggregates to MongoDB')
         result = actions_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
         if result is not None:
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         ##############################################
         # LOAD DEFAULT AUCTION AGGREGATES TO MONGODB #
         ##############################################
-        defaults_etl = BigQueryMongoETL('auction_defaults.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        defaults_etl = BigQueryMongoETL('hourlyadstats/hourlyadstats_defaults.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading auction default aggregates to MongoDB')
         new_result = defaults_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
         if new_result is not None:
@@ -141,6 +141,49 @@ if __name__ == '__main__':
             logger.info('%s Auction Defaults ETL Complete' % name)
         else:
             logger.info('No rows to insert, Auction Defaults ETL complete.')
+
+        ##############################################
+        # LOAD GEO IMP & CLICK AGGREGATES TO MONGODB #
+        ##############################################
+        GEO_ADSTAT_COLLECTION = client.exchange.geoadstats
+        geo_main_etl = BigQueryMongoETL('geoadstats/geoadstats_imps_clicks.sql', cliques_bq_settings,
+                                        GEO_ADSTAT_COLLECTION)
+        logger.info('Now loading GEO imps and clicks aggregates to MongoDB')
+        result = geo_main_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
+        if result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(result.inserted_ids), GEO_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Primary ETL Complete' % GEO_ADSTAT_COLLECTION.full_name)
+        else:
+            logger.info('No rows to insert, Geo Primary ETL complete.')
+
+        #########################################
+        # LOAD GEO ACTION AGGREGATES TO MONGODB #
+        #########################################
+        geo_actions_etl = BigQueryMongoETL('geoadstats/geoadstats_actions.sql', cliques_bq_settings,
+                                           GEO_ADSTAT_COLLECTION)
+        logger.info('Now loading GEO matched action aggregates to MongoDB')
+        result = actions_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
+        if result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(result.inserted_ids), GEO_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Actions ETL Complete' % GEO_ADSTAT_COLLECTION.full_name)
+        else:
+            logger.info('No rows to insert, Geo Actions ETL complete.')
+
+        ##################################################
+        # LOAD GEO DEFAULT AUCTION AGGREGATES TO MONGODB #
+        ##################################################
+        geo_defaults_etl = BigQueryMongoETL('geoadstats/geoadstats_defaults.sql', cliques_bq_settings,
+                                            GEO_ADSTAT_COLLECTION)
+        logger.info('Now loading GEO auction default aggregates to MongoDB')
+        new_result = geo_defaults_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
+        if new_result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(new_result.inserted_ids), GEO_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Auction Defaults ETL Complete' % GEO_ADSTAT_COLLECTION.full_name)
+        else:
+            logger.info('No rows to insert, GEO Auction Defaults ETL complete.')
 
     except:
         # Trigger incident in PagerDuty, then write out to log file
