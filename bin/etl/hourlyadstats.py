@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-
+import os
 from cliquesadmin import logger
 from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
 from cliquesadmin.misc_utils import parse_hourly_etl_args
@@ -23,7 +23,11 @@ pd_service_key = config.get('PagerDuty', 'service_key')
 pd_error_callback = create_pd_event_wrapper(pd_subdomain, pd_api_key, pd_service_key)
 
 client = MongoClient(mongo_host, mongo_port)
-client.exchange.authenticate(mongo_user, mongo_pwd, source=mongo_source_db)
+if os.environ.get('ENV', None) != 'production':
+    destination_db = client.exchange_dev
+else:
+    destination_db = client.exchange
+destination_db.authenticate(mongo_user, mongo_pwd, source=mongo_source_db)
 
 GLOBAL_QUERY_OPTS = {
     'destinationTable':
@@ -39,7 +43,8 @@ name = 'HourlyAdStats'
 if __name__ == '__main__':
 
     args = parse_hourly_etl_args(name)
-
+    logger.info('Environment "%s" loaded' % os.environ.get('ENV', None))
+    logger.info('Connected to mongodb at %s:%s/%s' % (mongo_host, mongo_port, mongo_source_db))
     logger.info('Beginning %s ETLs for interval %s to %s' % (name, args.start, args.end))
 
     # Wrap whole thing in blanket exception handler to write to log
@@ -105,7 +110,7 @@ if __name__ == '__main__':
         ##########################################
         # LOAD IMP & CLICK AGGREGATES TO MONGODB #
         ##########################################
-        HOURLY_ADSTAT_COLLECTION = client.exchange.hourlyadstats
+        HOURLY_ADSTAT_COLLECTION = destination_db.hourlyadstats
         main_etl = BigQueryMongoETL('hourlyadstats/hourlyadstats_imps_clicks.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading imps and clicks aggregates to MongoDB')
         result = main_etl.run(start=args.start, end=args.end, error_callback=pd_error_callback)
@@ -145,7 +150,7 @@ if __name__ == '__main__':
         ##############################################
         # LOAD GEO IMP & CLICK AGGREGATES TO MONGODB #
         ##############################################
-        GEO_ADSTAT_COLLECTION = client.exchange.geoadstats
+        GEO_ADSTAT_COLLECTION = destination_db.geoadstats
         geo_main_etl = BigQueryMongoETL('geoadstats/geoadstats_imps_clicks.sql', cliques_bq_settings,
                                         GEO_ADSTAT_COLLECTION)
         logger.info('Now loading GEO imps and clicks aggregates to MongoDB')
