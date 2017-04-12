@@ -22,11 +22,12 @@ SYNC = [
 # Aggregates will only have latest 2000 documents synced
 # each aggregate is tuple of collection name & sort field
 AGGREGATES = [
-    ('hourlyadstats', 'hour')
+    ('hourlyadstats', 'hour'),
+    ('geoadstats', 'hour')
 ]
 
 # number of documents to sync for aggregates
-AGGREGATES_LIMIT = 5000
+AGGREGATES_LIMIT = 10000
 
 # These collections will only be inserted to dev once on first sync,
 # and will not be overwritten on subsequent runs
