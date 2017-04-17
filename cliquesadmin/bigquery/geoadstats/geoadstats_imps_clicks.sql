@@ -8,7 +8,7 @@ SELECT
   auctions.pub_clique AS pub_clique,
   imps.adv_clique AS adv_clique,
   auctions.country AS country,
-  auctions.region AS region,
+  auctions.country + '-' + auctions.region AS region,
   auctions.city AS city,
   auctions.metro AS DMA,
   auctions.zip AS zip,
