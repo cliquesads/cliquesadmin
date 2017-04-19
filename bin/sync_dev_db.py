@@ -27,7 +27,7 @@ AGGREGATES = [
 ]
 
 # number of documents to sync for aggregates
-AGGREGATES_LIMIT = 10000
+AGGREGATES_LIMIT = 100000
 
 # These collections will only be inserted to dev once on first sync,
 # and will not be overwritten on subsequent runs
