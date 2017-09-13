@@ -91,7 +91,10 @@ if __name__ == '__main__':
             client.exchange_dev.drop_collection(col)
             logger.info('Getting new prod documents...')
             cursor = client.exchange[col].find()
-            insert_to_dev_from_cursor(cursor, col)
+            if cursor.count():
+                insert_to_dev_from_cursor(cursor, col)
+            else:
+                logger.info('Prod collection %s is empty, skipping...' % col)
         logger.info(' ============= DONE syncing SYNC collections ============= ')
 
         # Now sync aggregates
@@ -103,7 +106,10 @@ if __name__ == '__main__':
             client.exchange_dev.drop_collection(col[0])
             logger.info('Getting latest %s prod documents...' % AGGREGATES_LIMIT)
             cursor = client.exchange[col[0]].find(sort=[(col[1], DESCENDING)], limit=AGGREGATES_LIMIT)
-            insert_to_dev_from_cursor(cursor, col[0])
+            if cursor.count():
+                insert_to_dev_from_cursor(cursor, col[0])
+            else:
+                logger.info('Prod collection %s is empty, skipping...' % col[0])
         logger.info(' ============= DONE syncing AGGREGATES collections ============= ')
 
         # Now sync SYNC_ONCE collections
@@ -116,7 +122,10 @@ if __name__ == '__main__':
             else:
                 logger.info('SYNC_ONCE collection %s does not yet exist in dev, will create now' % col)
                 cursor = client.exchange[col].find()
-                insert_to_dev_from_cursor(cursor, col)
+                if cursor.count():
+                    insert_to_dev_from_cursor(cursor, col)
+                else:
+                    logger.info('Prod collection %s is empty, skipping...' % col)
         logger.info(' ============= DONE syncing SYNC_ONCE collections ============= ')
 
         logger.info('\n')
