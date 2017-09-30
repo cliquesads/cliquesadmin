@@ -16,11 +16,11 @@ FROM (
     MAX(bids.bid) AS max_bid,
     MAX(IF(max_bids.bid IS NULL, bids.bid, NULL) + 0.01) AS clearprice
   FROM
-    [ad_events.auctions] AS auctions
-  INNER JOIN EACH [ad_events.impressions] AS impressions
+    [{{ dataset }}.auctions] AS auctions
+  INNER JOIN EACH [{{ dataset }}.impressions] AS impressions
   ON
     auctions.impid = impressions.impid
-  INNER JOIN EACH [ad_events.bids] AS bids
+  INNER JOIN EACH [{{ dataset }}.bids] AS bids
   ON
     auctions.auctionId = bids.auctionId
     AND auctions.impid = bids.impid
@@ -39,7 +39,7 @@ FROM (
       b.adv_clique AS adv_clique,
       b.bid AS bid
     FROM
-      [ad_events.bids] AS b
+      [{{ dataset }}.bids] AS b
       -- could put WHERE clause here to make join table smaller but edge case of auctions
       -- happening as the hour ticks over bothers me, i.e. bids which happen in next hour
       -- after auction might not get joined here and lost forever
@@ -50,7 +50,7 @@ FROM (
         impid,
         MAX(bid) AS max_bid
       FROM
-        [ad_events.bids]
+        [{{ dataset }}.bids]
       GROUP BY
         auctionId,
         impid,

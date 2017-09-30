@@ -18,14 +18,14 @@ SELECT
   0 AS view_convs,
   0 AS click_convs
 FROM
-  [ad_events.auctions] AS auctions
-INNER JOIN EACH [ad_events.impressions] AS imps
+  [{{ dataset }}.auctions] AS auctions
+INNER JOIN EACH [{{ dataset }}.impressions] AS imps
 ON
   auctions.impid = imps.impid
-INNER JOIN EACH [ad_events.auction_stats] AS auction_stats
+INNER JOIN EACH [{{ dataset }}.auction_stats] AS auction_stats
 ON
   auctions.auctionId = auction_stats.auctionId
-LEFT JOIN EACH [ad_events.clicks] AS clicks
+LEFT JOIN EACH [{{ dataset }}.clicks] AS clicks
 ON
   auctions.impid = clicks.impid
 WHERE

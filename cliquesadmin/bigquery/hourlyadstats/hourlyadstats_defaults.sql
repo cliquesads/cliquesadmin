@@ -11,8 +11,8 @@ SELECT
   COUNT(defaults.auctionId) AS defaults,
   COUNT(DISTINCT(auctions.uuid)) AS uniques
 FROM
-  [ad_events.auctions] AS auctions
-INNER JOIN EACH [ad_events.auction_defaults] AS defaults
+  [{{ dataset }}.auctions] AS auctions
+INNER JOIN EACH [{{ dataset }}.auction_defaults] AS defaults
 ON
   auctions.auctionId = defaults.auctionId
 WHERE
