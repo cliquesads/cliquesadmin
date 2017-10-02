@@ -26,6 +26,7 @@ ON
   auctions.impid = imps.impid
 INNER JOIN EACH [{{ dataset }}.auction_stats] AS auction_stats
 ON
+  auctions.impid = auction_stats.impid AND
   auctions.auctionId = auction_stats.auctionId
 LEFT JOIN EACH [{{ dataset }}.clicks] AS clicks
 ON

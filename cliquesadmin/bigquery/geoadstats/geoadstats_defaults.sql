@@ -18,6 +18,13 @@ FROM
   [{{ dataset }}.auctions] AS auctions
 INNER JOIN EACH [{{ dataset }}.auction_defaults] AS defaults
 ON
+  -- TODO: This technically should be joining on impid and auctionId to ensure uniqueness, but
+  -- TODO: since this query is only counting the number of defaults and the behavior
+  -- TODO: in the case of a multi-imp auction default is to default for ALL imps in the unit,
+  -- TODO: joining on impId as well as auctionId won't affect these counts since we want to count
+  -- TODO: each imp in the auction as an individual default. Inner joining on auctionId vs. inner joining
+  -- TODO: on auctionId AND impId in this case results in the same number of records, even though those records
+  -- TODO: on the right side of the join are duplicates.
   auctions.auctionId = defaults.auctionId
 WHERE
   auctions.tstamp >= TIMESTAMP('{{ start }}')
