@@ -198,6 +198,49 @@ if __name__ == '__main__':
         else:
             logger.info('No rows to insert, GEO Auction Defaults ETL complete.')
 
+        ###################################################
+        # LOAD KEYWORDS IMP & CLICK AGGREGATES TO MONGODB #
+        ###################################################
+        KEYWORD_ADSTAT_COLLECTION = destination_db.keywordadstats
+        keyword_main_etl = BigQueryMongoETL('keywordadstats/keywordadstats_imps_clicks.sql', cliques_bq_settings,
+                                        KEYWORD_ADSTAT_COLLECTION)
+        logger.info('Now loading KEYWORD imps and clicks aggregates to MongoDB')
+        result = keyword_main_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
+        if result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(result.inserted_ids), KEYWORD_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Primary ETL Complete' % KEYWORD_ADSTAT_COLLECTION.full_name)
+        else:
+            logger.info('No rows to insert, Keyword Primary ETL complete.')
+
+        #############################################
+        # LOAD KEYWORD ACTION AGGREGATES TO MONGODB #
+        #############################################
+        keyword_actions_etl = BigQueryMongoETL('keywordadstats/keywordadstats_actions.sql', cliques_bq_settings,
+                                           KEYWORD_ADSTAT_COLLECTION)
+        logger.info('Now loading KEYWORD matched action aggregates to MongoDB')
+        result = keyword_actions_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
+        if result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(result.inserted_ids), KEYWORD_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Actions ETL Complete' % KEYWORD_ADSTAT_COLLECTION.full_name)
+        else:
+            logger.info('No rows to insert, Keyword Actions ETL complete.')
+
+        ##################################################
+        # LOAD KEYWORD DEFAULT AUCTION AGGREGATES TO MONGODB #
+        ##################################################
+        keyword_defaults_etl = BigQueryMongoETL('keywordadstats/keywordadstats_defaults.sql', cliques_bq_settings,
+                                            KEYWORD_ADSTAT_COLLECTION)
+        logger.info('Now loading KEYWORD auction default aggregates to MongoDB')
+        new_result = keyword_defaults_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
+        if new_result is not None:
+            logger.info('Inserted %s documents into collection %s' %
+                        (len(new_result.inserted_ids), KEYWORD_ADSTAT_COLLECTION.full_name))
+            logger.info('%s Auction Defaults ETL Complete' % KEYWORD_ADSTAT_COLLECTION.full_name)
+        else:
+            logger.info('No rows to insert, KEYWORD Auction Defaults ETL complete.')
+
     except:
         # Trigger incident in PagerDuty, then write out to log file
         stacktrace_to_pd_event(pd_subdomain, pd_api_key, pd_service_key)
