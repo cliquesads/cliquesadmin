@@ -176,7 +176,7 @@ if __name__ == '__main__':
         geo_actions_etl = BigQueryMongoETL('geoadstats/geoadstats_actions.sql', cliques_bq_settings,
                                            GEO_ADSTAT_COLLECTION)
         logger.info('Now loading GEO matched action aggregates to MongoDB')
-        result = actions_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
+        result = geo_actions_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
         if result is not None:
             logger.info('Inserted %s documents into collection %s' %
                         (len(result.inserted_ids), GEO_ADSTAT_COLLECTION.full_name))
