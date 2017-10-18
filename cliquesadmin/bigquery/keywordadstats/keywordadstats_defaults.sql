@@ -4,7 +4,7 @@ SELECT
 	auctions.site AS site,
 	auctions.page AS page,
 	auctions.placement AS placement,
-	auctions.pub_cliques AS pub_cliques,
+	auctions.pub_clique AS pub_clique,
 	-- auctions.keywords AS keywords,
 	bids_table.bid_keyword AS keyword,
 	-- Don't count distinct on these, as they should be distinct by definition
@@ -26,7 +26,7 @@ ON
 	auctions.auctionId = defaults.auctionId
 INNER JOIN EACH [{{ dataset }}.bids] as bids_table
 ON
-	auctions.impid = bids_table.impid
+	auctions.auctionId = bids_table.auctionId
 WHERE
 	auctions.tstamp >= TIMESTAMP('{{ start }}')
 	AND auctions.tstamp < TIMESTAMP('{{ end }}')
@@ -37,4 +37,4 @@ GROUP EACH BY
 	page,
 	placement,
 	pub_clique,
-	keywords
+	keyword
