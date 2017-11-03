@@ -5,8 +5,7 @@ SELECT
 	auctions.page AS page,
 	auctions.placement AS placement,
 	auctions.pub_clique AS pub_clique,
-	-- auctions.keywords AS keywords,
-	bids_table.bid_keyword AS keyword,
+	auctions.keywords AS keywords,
 	-- Don't count distinct on these, as they should be distinct by definition
 	-- TODO: might want a defaultsId but it doesn't seem necessary here, as auctionId should
 	-- TODO: be sufficient given 1-1 relationship
@@ -24,17 +23,13 @@ ON
 	-- TODO: on auctionId AND impId in this case results in the same number of records, even though those records
 	-- TODO: on the right side of the join are duplicates.
 	auctions.auctionId = defaults.auctionId
-INNER JOIN EACH [{{ dataset }}.bids] as bids_table
-ON
-	auctions.auctionId = bids_table.auctionId
 WHERE
 	auctions.tstamp >= TIMESTAMP('{{ start }}')
 	AND auctions.tstamp < TIMESTAMP('{{ end }}')
-	AND auctions.keywords CONTAINS bids_table.bid_keyword
 GROUP EACH BY
 	publisher,
 	site,
 	page,
 	placement,
 	pub_clique,
-	keyword
+	keywords

@@ -11,7 +11,7 @@ SELECT
 	i.actionbeacon AS actionbeacon,
 	i.pub_clique AS pub_clique,
 	i.adv_clique AS adv_clique,
-	bids_table.bid_keyword AS keyword,
+	auctions.keywords AS keywords,
 	0 as bids,
 	0 as spend,
 	0 as imps,
@@ -26,16 +26,12 @@ FROM
 INNER JOIN EACH [{{ dataset }}.auctions] as auctions
 ON
 	auctions.impid = i.impid
-INNER JOIN EACH [{{ dataset }}.bids] as bids_table
-ON
-	auctions.impid = bids_table.impid
 OUTER JOIN EACH [{{ dataset }}.click_matched_actions] AS c
 ON
 	c.actionid = i.actionid
 WHERE
 	i.action_tstamp >= TIMESTAMP('{{ start }}')
 	AND i.action_tstamp < TIMESTAMP('{{ end }}')
-	AND auctions.keywords CONTAINS bids_table.bid_keyword
 GROUP BY
 	publisher,
 	site,
@@ -48,4 +44,4 @@ GROUP BY
 	actionbeacon,
 	pub_clique,
 	adv_clique,
-	keyword
+	keywords
