@@ -157,6 +157,19 @@ class BigQueryETL(object):
         return None
 
     def transform(self, dataframe):
+        # For keyword adstats, have to transform the keywords field, 
+        # a string with comma separated keywords, to an string array
+        is_keyword_dataframe = False
+        for c in dataframe.columns:
+            if c == 'keywords':
+                is_keyword_dataframe = True
+                break
+
+        if is_keyword_dataframe == True:
+            for index, row in dataframe.iterrows():
+                row['keywords'] = row['keywords'].split(',')
+                dataframe.set_value(index, 'keywords', row['keywords'])
+
         """
         Hook for subclasses to do any necessary transformation
         of raw query output before inserting into MongoDB.
