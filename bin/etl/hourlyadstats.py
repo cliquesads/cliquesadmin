@@ -20,7 +20,10 @@ click_lookback = config.get('ETL', 'action_lookback', 'click')
 pd_api_key = config.get('PagerDuty', 'api_key')
 pd_subdomain = config.get('PagerDuty', 'subdomain')
 pd_service_key = config.get('PagerDuty', 'service_key')
-pd_error_callback = create_pd_event_wrapper(pd_subdomain, pd_api_key, pd_service_key)
+if os.environ.get('ENV', None) == 'production':
+    pd_error_callback = create_pd_event_wrapper(pd_subdomain, pd_api_key, pd_service_key)
+else:
+    pd_error_callback = None
 
 # get dataset from config
 dataset = config.get('ETL', 'bigquery', 'adEventDataset')
@@ -203,7 +206,7 @@ if __name__ == '__main__':
         ###################################################
         KEYWORD_ADSTAT_COLLECTION = destination_db.keywordadstats
         keyword_main_etl = BigQueryMongoETL('keywordadstats/keywordadstats_imps_clicks.sql', cliques_bq_settings,
-                                        KEYWORD_ADSTAT_COLLECTION)
+                                            KEYWORD_ADSTAT_COLLECTION)
         logger.info('Now loading KEYWORD imps and clicks aggregates to MongoDB')
         result = keyword_main_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
         if result is not None:
@@ -217,7 +220,7 @@ if __name__ == '__main__':
         # LOAD KEYWORD ACTION AGGREGATES TO MONGODB #
         #############################################
         keyword_actions_etl = BigQueryMongoETL('keywordadstats/keywordadstats_actions.sql', cliques_bq_settings,
-                                           KEYWORD_ADSTAT_COLLECTION)
+                                               KEYWORD_ADSTAT_COLLECTION)
         logger.info('Now loading KEYWORD matched action aggregates to MongoDB')
         result = keyword_actions_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
         if result is not None:
@@ -231,7 +234,7 @@ if __name__ == '__main__':
         # LOAD KEYWORD DEFAULT AUCTION AGGREGATES TO MONGODB #
         ##################################################
         keyword_defaults_etl = BigQueryMongoETL('keywordadstats/keywordadstats_defaults.sql', cliques_bq_settings,
-                                            KEYWORD_ADSTAT_COLLECTION)
+                                                KEYWORD_ADSTAT_COLLECTION)
         logger.info('Now loading KEYWORD auction default aggregates to MongoDB')
         new_result = keyword_defaults_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
         if new_result is not None:
@@ -243,6 +246,7 @@ if __name__ == '__main__':
 
     except:
         # Trigger incident in PagerDuty, then write out to log file
-        stacktrace_to_pd_event(pd_subdomain, pd_api_key, pd_service_key)
+        if os.environ.get('ENV', None) == 'production':
+            stacktrace_to_pd_event(pd_subdomain, pd_api_key, pd_service_key)
         logger.exception('Uncaught exception while running ETL!')
         raise
