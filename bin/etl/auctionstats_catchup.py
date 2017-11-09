@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from cliquesadmin import logger
 from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
 from cliquesadmin.jsonconfig import JsonConfigParser
-from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, cliques_bq_settings
+from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, cliques_bq_settings, BqMongoKeywordETL
 
 config = JsonConfigParser()
 
@@ -54,7 +54,7 @@ name = 'Hourly Ad Stats Catchup'
 if __name__ == '__main__':
 
     # args = parse_hourly_etl_args(name)
-    datetimes = [datetime(2017, 10, 24, h) for h in range(0, 19)] #for n in range(1,2)]
+    datetimes = [datetime(2017, 11, 9, h) for h in range(13, 15)] #for n in range(1,2)]
     # datetimes += [datetime(2017, 3, 3, h) for h in range(0, 6)]
 
     for dt in datetimes:
@@ -152,7 +152,7 @@ if __name__ == '__main__':
             # LOAD KEYWORDS IMP & CLICK AGGREGATES TO MONGODB #
             ###################################################
             KEYWORD_ADSTAT_COLLECTION = destination_db.keywordadstats
-            keyword_main_etl = BigQueryMongoETL('keywordadstats/keywordadstats_imps_clicks.sql', cliques_bq_settings,
+            keyword_main_etl = BqMongoKeywordETL('keywordadstats/keywordadstats_imps_clicks.sql', cliques_bq_settings,
                                                 KEYWORD_ADSTAT_COLLECTION)
             logger.info('Now loading KEYWORD imps and clicks aggregates to MongoDB')
             result = keyword_main_etl.run(start=start, end=end, dataset=dataset, error_callback=pd_error_callback)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
             #############################################
             # LOAD KEYWORD ACTION AGGREGATES TO MONGODB #
             #############################################
-            keyword_actions_etl = BigQueryMongoETL('keywordadstats/keywordadstats_actions.sql', cliques_bq_settings,
+            keyword_actions_etl = BqMongoKeywordETL('keywordadstats/keywordadstats_actions.sql', cliques_bq_settings,
                                                    KEYWORD_ADSTAT_COLLECTION)
             logger.info('Now loading KEYWORD matched action aggregates to MongoDB')
             result = keyword_actions_etl.run(start=start, end=end, dataset=dataset, error_callback=pd_error_callback)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
             ######################################################
             # LOAD KEYWORD DEFAULT AUCTION AGGREGATES TO MONGODB #
             ######################################################
-            keyword_defaults_etl = BigQueryMongoETL('keywordadstats/keywordadstats_defaults.sql', cliques_bq_settings,
+            keyword_defaults_etl = BqMongoKeywordETL('keywordadstats/keywordadstats_defaults.sql', cliques_bq_settings,
                                                     KEYWORD_ADSTAT_COLLECTION)
             logger.info('Now loading KEYWORD auction default aggregates to MongoDB')
             new_result = keyword_defaults_etl.run(start=start, end=end, dataset=dataset, error_callback=pd_error_callback)
