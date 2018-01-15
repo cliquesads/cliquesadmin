@@ -33,7 +33,7 @@ FROM (
           c.advertiser AS advertiser,
           c.tstamp AS tstamp
         FROM
-          [ad_events.clicks] AS c
+          [{{ dataset }}.clicks] AS c
         WHERE
           tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS inner_clicks
 
@@ -41,7 +41,7 @@ FROM (
         SELECT
           *
         FROM
-          [ad_events.actions]
+          [{{ dataset }}.actions]
         WHERE
           tstamp >= TIMESTAMP('{{ start }}')
           AND tstamp < TIMESTAMP('{{ end }}')) AS inner_actions
@@ -65,7 +65,7 @@ INNER JOIN EACH (
   SELECT
     *
   FROM
-    [ad_events.clicks]
+    [{{ dataset }}.clicks]
   WHERE
     tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS clicks
 ON
@@ -77,7 +77,7 @@ INNER JOIN EACH (
   SELECT
     *
   FROM
-    [ad_events.auctions]
+    [{{ dataset }}.auctions]
   WHERE
     tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS auctions
 ON
