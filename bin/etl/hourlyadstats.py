@@ -27,7 +27,7 @@ else:
     pd_error_callback = None
 
 # get dataset from config
-dataset = config.get('ETL', 'bigquery', 'adEventDataset')
+dataset = config.get('ETL', 'bigQuery', 'adEventDataset')
 
 client = MongoClient(mongo_host, mongo_port)
 if os.environ.get('ENV', None) != 'production':
