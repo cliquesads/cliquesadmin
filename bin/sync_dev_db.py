@@ -23,7 +23,8 @@ SYNC = [
 # each aggregate is tuple of collection name & sort field
 AGGREGATES = [
     ('hourlyadstats', 'hour'),
-    ('geoadstats', 'hour')
+    ('geoadstats', 'hour'),
+    ('keywordadstats', 'hour')
 ]
 
 # number of documents to sync for aggregates

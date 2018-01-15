@@ -166,6 +166,19 @@ class BigQueryETL(object):
         :param dataframe:
         :return:
         """
+        # For keyword adstats, have to transform the keywords field,
+        # a string with comma separated keywords, to an string array
+        is_keyword_dataframe = False
+        for c in dataframe.columns:
+            if c == 'keywords':
+                is_keyword_dataframe = True
+                break
+
+        if is_keyword_dataframe == True:
+            for index, row in dataframe.iterrows():
+                row['keywords'] = row['keywords'].split(',')
+                dataframe.set_value(index, 'keywords', row['keywords'])
+
         return dataframe
 
     def load(self, dataframe):
@@ -211,6 +224,48 @@ class BigQueryMongoETL(BigQueryETL):
                     row[k] = row[k].to_datetime()
 
         return self.mongo_collection.insert_many(records)
+
+
+class BqMongoKeywordETL(BigQueryMongoETL):
+
+    def __init__(self, template, gce_settings, mongo_collection, **kwargs):
+        self.mongo_collection = mongo_collection
+        super(BigQueryMongoETL, self).__init__(template, gce_settings, **kwargs)
+
+    def load(self, dataframe):
+        """
+        Loads a pandas dataframe object into MongoDB collection
+
+        :param dataframe:
+        :return:
+        """
+        records = dataframe.to_dict(orient='records')
+
+        # Not proud of this, would love to figure out a way
+        # around this natively in Pandas
+        for row in records:
+            for k in row:
+                if isinstance(row[k], pd.tslib.Timestamp):
+                    row[k] = row[k].to_datetime()
+
+        return self.mongo_collection.insert_many(records)
+
+    def transform(self, dataframe):
+        """
+        Transforms keywords column of comma separated strings in dataframe to
+        array to store in Mongo collection
+
+        :param dataframe:
+        :return:
+        """
+        # For keyword adstats, have to transform the keywords field,
+        # a string with comma separated keywords, to an string array
+        for index, row in dataframe.iterrows():
+            if row['keywords']:
+                row['keywords'] = row['keywords'].split(',')
+            dataframe.set_value(index, 'keywords', row['keywords'])
+
+        return dataframe
 
 
 class BigQueryIntermediateETL(BigQueryETL):

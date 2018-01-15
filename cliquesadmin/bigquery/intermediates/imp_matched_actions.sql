@@ -38,14 +38,14 @@ FROM (
       i.advertiser AS advertiser,
       i.tstamp AS tstamp
     FROM
-      [ad_events.impressions] AS i
+      [{{ dataset }}.impressions] AS i
     WHERE
       tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS inner_imps
   INNER JOIN EACH (
     SELECT
       *
     FROM
-      [ad_events.actions]
+      [{{ dataset }}.actions]
     WHERE
       tstamp >= TIMESTAMP('{{ start }}')
       AND tstamp < TIMESTAMP('{{ end }}')) AS inner_actions
@@ -73,7 +73,7 @@ INNER JOIN EACH (
   SELECT
     *
   FROM
-    [ad_events.impressions]
+    [{{ dataset }}.impressions]
   WHERE
     tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS imps
 ON
@@ -85,7 +85,7 @@ INNER JOIN EACH (
   SELECT
     *
   FROM
-    [ad_events.auctions]
+    [{{ dataset }}.auctions]
   WHERE
     tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS auctions
 ON

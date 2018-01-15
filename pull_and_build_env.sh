@@ -14,7 +14,7 @@ fi
 pip install -r requirements.txt
 
 if [ ! -d $HOME"/repositories/cliques-config" ]; then
-    git clone git@github.com:cliquesads/cliques-config.git ../cliques-config
+    git clone git@github.com:cliquesads/smartertravel-config.git ../cliques-config
     ln -s ../cliques-config config
 else
     cd ../cliques-config
