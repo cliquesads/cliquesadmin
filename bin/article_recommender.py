@@ -29,13 +29,17 @@ def clean_text(text):
     # strip out non-ASCII chars
     text = ''.join([i if ord(i) < 128 else ' ' for i in text])
     # replace newline escape chars with spaces
-    return text.replace('\n', ' ')
+    return text
 
 
-def extract_article_text(soup):
-    main_content_block = soup.select('.entry-content')
+def extract_article_text(soup, selector):
+    main_content_block = soup.select(selector)
     if main_content_block:
         div = main_content_block[0]
+        # Find all script tags and remove them
+        scripts = div.find_all('script')
+        for s in scripts:
+            s.extract()
         return clean_text(div.get_text())
     else:
         raise LookupError("Content node not found.")
@@ -101,7 +105,23 @@ def parse_article_properties(soup):
     return _parse_meta_tags(soup, properties, namespace=namespace)
 
 
-def walk_article_dir_and_store_text(root, basepath, collection, publisher, site):
+def get_date_from_selector(soup, selector):
+    dt = soup.select(selector)[0].get_text()
+    try:
+        dt = dateutil.parser.parse(dt)
+    except ValueError:
+        print "Tried to parse date from selector but invalid datetime string was received, skipping."
+    return dt
+
+
+def walk_article_dir_and_store_text(root, basepath, collection, selectors, publisher, site):
+
+    # first get selectors to be used when looking for article attributes
+    text_selector = selectors["text"] #text selector is mandatory
+    # published_time selector used to find datetime article was published if this is
+    # not available in meta
+    published_time_selector = selectors["published_time"] if selectors.has_key("published_time") else False
+
     for root, dirs, files in os.walk(root):
         for name in files:
             filepath = os.path.join(root, name)
@@ -110,10 +130,18 @@ def walk_article_dir_and_store_text(root, basepath, collection, publisher, site)
             soup = BeautifulSoup(contents, 'html.parser')
             # Try to extract text, otherwise log it and move on
             try:
-                text = extract_article_text(soup)
+                text = extract_article_text(soup, text_selector)
                 url = root.replace(basepath, 'http:/')
                 opengraph = parse_opengraph_properties(soup)
                 article = parse_article_properties(soup)
+
+                # check published_time selector if published_time not available in meta
+                if not(opengraph.has_key('published_time')) and not(article.has_key('published_time')):
+                    if published_time_selector:
+                        dt = get_date_from_selector(soup, published_time_selector)
+                        opengraph["published_time"] = dt
+                        article["published_time"] = dt
+
                 obj = {
                     "tstamp": datetime.datetime.utcnow(),
                     "text": text,
@@ -217,20 +245,25 @@ content_engine = ContentEngine()
 
 if __name__ == "__main__":
     HOME = '/Users/bliang'
-    UNQUALIFIED_URL = 'www.smartertravel.com'
+    UNQUALIFIED_URL = 'www.airfarewatchdog.com/blog'
+    SELECTORS = {
+        "text": '.blog_entry_content',
+        "published_time": '.blog_entry_date'
+    }
     BASEPATH = os.path.join(HOME, UNQUALIFIED_URL)
 
-    ARTICLE_SUBDIRECTORIES = [str(yr) for yr in range(2007, 2019)]
+    # ARTICLE_SUBDIRECTORIES = [str(yr) for yr in range(2007, 2019)]
     PUBLISHER = '59b9bdae3cd9be16b68da219'
-    SITE = '59b9bdae3cd9be16b68da21a'
+    SITE = '59bac87a40666f5bfed44d25'
 
     # Parse raw HTML files
-    for subdir in ARTICLE_SUBDIRECTORIES:
-        walk_article_dir_and_store_text(os.path.join(BASEPATH, subdir),
-                                        HOME,
-                                        COLLECTION,
-                                        PUBLISHER,
-                                        SITE)
+    # for subdir in ARTICLE_SUBDIRECTORIES:
+    walk_article_dir_and_store_text(BASEPATH,
+                                    HOME,
+                                    COLLECTION,
+                                    SELECTORS,
+                                    PUBLISHER,
+                                    SITE)
 
     # Train the model
     content_engine = ContentEngine()
@@ -241,7 +274,3 @@ if __name__ == "__main__":
         tf_idf = content_engine.predict(str(doc["_id"]), 0)
         doc["tf_idf"] = [{"article": t[0], "weight": t[1]} for t in tf_idf]
         COLLECTION.save(doc)
-
-
-
-
