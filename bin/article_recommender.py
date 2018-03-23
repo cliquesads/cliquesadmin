@@ -245,25 +245,25 @@ content_engine = ContentEngine()
 
 if __name__ == "__main__":
     HOME = '/Users/bliang'
-    UNQUALIFIED_URL = 'www.airfarewatchdog.com/blog'
+    UNQUALIFIED_URL = 'www.smartertravel.com'
     SELECTORS = {
-        "text": '.blog_entry_content',
-        "published_time": '.blog_entry_date'
+        "text": '.entry-content',
+        # "published_time": '.blog_entry_date'
     }
     BASEPATH = os.path.join(HOME, UNQUALIFIED_URL)
 
-    # ARTICLE_SUBDIRECTORIES = [str(yr) for yr in range(2007, 2019)]
+    ARTICLE_SUBDIRECTORIES = [str(yr) for yr in range(2007, 2019)]
     PUBLISHER = '59b9bdae3cd9be16b68da219'
-    SITE = '59bac87a40666f5bfed44d25'
+    SITE = '59b9bdae3cd9be16b68da21a'
 
     # Parse raw HTML files
-    # for subdir in ARTICLE_SUBDIRECTORIES:
-    walk_article_dir_and_store_text(BASEPATH,
-                                    HOME,
-                                    COLLECTION,
-                                    SELECTORS,
-                                    PUBLISHER,
-                                    SITE)
+    for subdir in ARTICLE_SUBDIRECTORIES:
+        walk_article_dir_and_store_text(os.path.join(BASEPATH, subdir),
+                                        HOME,
+                                        COLLECTION,
+                                        SELECTORS,
+                                        PUBLISHER,
+                                        SITE)
 
     # Train the model
     content_engine = ContentEngine()

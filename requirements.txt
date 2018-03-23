@@ -24,7 +24,7 @@ MarkupSafe==0.23
 msgpack-python==0.4.5
 numpy==1.9.2
 oauth2client==1.4.6
-pandas==0.16.2
+pandas==0.17.1
 path.py==8.1.2
 pexpect==4.0.1
 pickleshare==0.5
@@ -47,5 +47,7 @@ simplegeneric==0.8.1
 simplejson==3.6.5
 six==1.9.0
 traitlets==4.0.0
+ua-parser==0.7.3
 uritemplate==0.6
+user-agents==1.1.0
 Werkzeug==0.10.1
