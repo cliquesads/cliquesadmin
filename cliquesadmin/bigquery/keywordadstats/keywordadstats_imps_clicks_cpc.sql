@@ -11,6 +11,7 @@ SELECT
 	imps.creative AS creative,
 	auctions.pub_clique AS pub_clique,
 	imps.adv_clique AS adv_clique,
+	AVG(auction_stats.clearprice) AS clearprice,
 	SUM(auction_stats.num_bids) AS bids,
 	SUM(auction_stats.clearprice * IF(clicks.clickid is null, 0, 1)) AS spend,
 	COUNT(auctions.impid) AS imps,

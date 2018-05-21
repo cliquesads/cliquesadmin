@@ -12,6 +12,7 @@ SELECT
   auctions.city AS city,
   auctions.metro AS DMA,
   auctions.zip AS zip,
+  AVG(auction_stats.clearprice) AS clearprice,
   SUM(auction_stats.num_bids) AS bids,
   SUM(auction_stats.clearprice * IF(clicks.clickid is null, 0, 1)) AS spend,
   COUNT(auctions.impid) AS imps,
