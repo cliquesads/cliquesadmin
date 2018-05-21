@@ -54,6 +54,15 @@ if __name__ == '__main__':
     logger.info('Connected to mongodb at %s:%s/%s' % (mongo_host, mongo_port, mongo_source_db))
     logger.info('Beginning %s ETLs for interval %s to %s' % (name, args.start, args.end))
 
+    # get pricing config, i.e. "CPC" or "CPM". NOTE: Default is CPM and is also the fallback.
+    # I.e. if pricing not set to either, will use CPM queries.
+    pricing = config.get('Pricing')
+    if pricing != 'CPC' & pricing != 'CPM':
+        logger.warn('Warning: received invalid Pricing config: \'%s\'. Please change to either \'CPC\' or \'CPM\'. '
+                    'Will default to CPM, but you should change this ASAP.')
+    else:
+        logger.info('Pricing structure set to %s, will calculate spend based on this metric.' % pricing)
+
     # Wrap whole thing in blanket exception handler to write to log
     try:
         ###########################
@@ -123,7 +132,10 @@ if __name__ == '__main__':
         # LOAD IMP & CLICK AGGREGATES TO MONGODB #
         ##########################################
         HOURLY_ADSTAT_COLLECTION = destination_db.hourlyadstats
-        main_etl = BigQueryMongoETL('hourlyadstats/hourlyadstats_imps_clicks.sql', cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
+        # Toggle query based on pricing config
+        HOURLY_ADSTAT_QUERY = 'hourlyadstats/hourlyadstats_imps_clicks_cpc.sql' if pricing == 'CPC' else \
+            'hourlyadstats/hourlyadstats_imps_clicks_cpm.sql'
+        main_etl = BigQueryMongoETL(HOURLY_ADSTAT_QUERY, cliques_bq_settings, HOURLY_ADSTAT_COLLECTION)
         logger.info('Now loading imps and clicks aggregates to MongoDB')
         result = main_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
         if result is not None:
@@ -163,7 +175,9 @@ if __name__ == '__main__':
         # LOAD GEO IMP & CLICK AGGREGATES TO MONGODB #
         ##############################################
         GEO_ADSTAT_COLLECTION = destination_db.geoadstats
-        geo_main_etl = BigQueryMongoETL('geoadstats/geoadstats_imps_clicks.sql', cliques_bq_settings,
+        GEO_ADSTAT_QUERY = 'geoadstats/geoadstats_imps_clicks_cpc.sql' if pricing == 'CPC' else \
+            'geoadstats/geoadstats_imps_clicks_cpm.sql'
+        geo_main_etl = BigQueryMongoETL(GEO_ADSTAT_QUERY, cliques_bq_settings,
                                         GEO_ADSTAT_COLLECTION)
         logger.info('Now loading GEO imps and clicks aggregates to MongoDB')
         result = geo_main_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
@@ -206,7 +220,9 @@ if __name__ == '__main__':
         # LOAD KEYWORDS IMP & CLICK AGGREGATES TO MONGODB #
         ###################################################
         KEYWORD_ADSTAT_COLLECTION = destination_db.keywordadstats
-        keyword_main_etl = BqMongoKeywordETL('keywordadstats/keywordadstats_imps_clicks.sql', cliques_bq_settings,
+        KEYWORD_ADSTAT_QUERY = 'keywordadstats/keywordadstats_imps_clicks_cpc.sql' if pricing == 'CPC' else \
+            'keywordadstats/keywordadstats_imps_clicks_cpm.sql'
+        keyword_main_etl = BqMongoKeywordETL(KEYWORD_ADSTAT_QUERY, cliques_bq_settings,
                                              KEYWORD_ADSTAT_COLLECTION)
         logger.info('Now loading KEYWORD imps and clicks aggregates to MongoDB')
         result = keyword_main_etl.run(start=args.start, end=args.end, dataset=dataset, error_callback=pd_error_callback)
