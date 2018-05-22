@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # get pricing config, i.e. "CPC" or "CPM". NOTE: Default is CPM and is also the fallback.
     # I.e. if pricing not set to either, will use CPM queries.
     pricing = config.get('Pricing')
-    if pricing != 'CPC' & pricing != 'CPM':
+    if (pricing != 'CPC') & (pricing != 'CPM'):
         logger.warn('Warning: received invalid Pricing config: \'%s\'. Please change to either \'CPC\' or \'CPM\'. '
                     'Will default to CPM, but you should change this ASAP.')
     else:
