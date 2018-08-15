@@ -16,7 +16,10 @@ SYNC = [
     'termsandconditions',
     'demohourlyadstats',
     'users',
-    'screenshots'
+    'screenshots',
+    'blockedips',
+    'blockeduseragents',
+    'salespeople'
 ]
 
 # Aggregates will only have latest 2000 documents synced
