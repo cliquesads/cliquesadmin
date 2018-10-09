@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 import os
 from cliquesadmin import logger
+from datetime import timedelta
 from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
 from cliquesadmin.misc_utils import parse_hourly_etl_args
 from cliquesadmin.jsonconfig import JsonConfigParser
@@ -107,10 +108,13 @@ if __name__ == '__main__':
         auction_stats_etl = BigQueryIntermediateETL('intermediates/auction_stats.sql',
                                                     cliques_bq_settings,
                                                     query_options=auction_query_opts)
-
+        wideStart = args.start - timedelta(hours=1)
+        wideEnd = args.end + timedelta(hours=1)
         logger.info('Now creating auction stats, containing bid density & clearprice')
         auction_stats_result = auction_stats_etl.run(start=args.start,
                                                      end=args.end,
+                                                     wideStart=wideStart,
+                                                     wideEnd=wideEnd,
                                                      dataset=dataset,
                                                      error_callback=pd_error_callback)
         logger.info('Done')
