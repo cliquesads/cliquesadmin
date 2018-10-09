@@ -6,7 +6,7 @@ SELECT
   auctions.page AS page,
   auctions.pub_clique AS pub_clique,
   auctions.country AS country,
-  auctions.country + '-' + auctions.region AS region,
+  CONCAT(auctions.country, '-', auctions.region) AS region,
   auctions.city AS city,
   auctions.metro AS DMA,
   auctions.zip AS zip,
