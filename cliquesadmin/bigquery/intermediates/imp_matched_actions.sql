@@ -30,7 +30,7 @@ FROM (
     inner_actions.advertiser AS advertiser,
     inner_actions.actionbeacon AS actionbeacon,
     inner_actions.value AS value,
-    MAX(inner_imps.tstamp) AS imp_tstamp,
+    MAX(inner_imps.tstamp) AS imp_tstamp
     -- last touch attribution, so take the last timestamp
   FROM (
       -- get only impressions from last 30 days
@@ -39,14 +39,14 @@ FROM (
       i.advertiser AS advertiser,
       i.tstamp AS tstamp
     FROM
-      [{{ dataset }}.impressions] AS i
+      `{{ dataset }}.impressions` AS i
     WHERE
       tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS inner_imps
   INNER JOIN EACH (
     SELECT
       *
     FROM
-      [{{ dataset }}.actions]
+      `{{ dataset }}.actions`
     WHERE
       tstamp >= TIMESTAMP('{{ start }}')
       AND tstamp < TIMESTAMP('{{ end }}')) AS inner_actions
@@ -74,7 +74,7 @@ INNER JOIN EACH (
   SELECT
     *
   FROM
-    [{{ dataset }}.impressions]
+    `{{ dataset }}.impressions`
   WHERE
     tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS imps
 ON
@@ -86,7 +86,7 @@ INNER JOIN EACH (
   SELECT
     *
   FROM
-    [{{ dataset }}.auctions]
+    `{{ dataset }}.auctions`
   WHERE
     tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS auctions
 ON

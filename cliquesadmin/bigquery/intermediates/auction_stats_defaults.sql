@@ -8,7 +8,7 @@ SELECT
   0.0 as max_bid,
   0.0 as clearprice
 FROM
-  [{{ dataset }}.auctions] AS auctions
+  `{{ dataset }}.auctions` AS auctions
 WHERE
   auctions.tstamp >= TIMESTAMP('{{ start }}')
   AND auctions.tstamp < TIMESTAMP('{{ end }}')

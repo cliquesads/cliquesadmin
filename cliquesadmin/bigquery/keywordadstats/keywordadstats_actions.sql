@@ -23,11 +23,11 @@ SELECT
 	SUM(IF(c.click_tstamp IS NOT NULL
 	    AND c.click_tstamp > i.imp_tstamp, 1, 0)) AS click_convs
 FROM
-	[{{ dataset }}.imp_matched_actions] AS i
-INNER JOIN EACH [{{ dataset }}.auctions] as auctions
+	`{{ dataset }}.imp_matched_actions` AS i
+INNER JOIN EACH `{{ dataset }}.auctions` as auctions
 ON
 	auctions.impid = i.impid
-OUTER JOIN EACH [{{ dataset }}.click_matched_actions] AS c
+OUTER JOIN EACH `{{ dataset }}.click_matched_actions` AS c
 ON
 	c.actionid = i.actionid
 WHERE
