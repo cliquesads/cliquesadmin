@@ -17,7 +17,7 @@ SELECT
   FIRST(auctions.page) AS page,
   FIRST(auctions.placement) AS placement,
   FIRST(auctions.pub_clique) AS pub_clique
-FROM (
+FROM ((
     SELECT
       inner_actions.actionid AS actionid,
       inner_actions.tstamp AS tstamp,
@@ -29,23 +29,23 @@ FROM (
     -- last touch attribution, so take the last timestamp
     FROM (
     -- get only clicks from last 30 days
-        SELECT
+        (SELECT
           c.uuid AS uuid,
           c.advertiser AS advertiser,
           c.tstamp AS tstamp
         FROM
           `{{ dataset }}.clicks` AS c
         WHERE
-          tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS inner_clicks
+          tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS inner_clicks
 
-    INNER JOIN EACH (
-        SELECT
+    INNER JOIN (
+        (SELECT
           *
         FROM
           `{{ dataset }}.actions`
         WHERE
           tstamp >= TIMESTAMP('{{ start }}')
-          AND tstamp < TIMESTAMP('{{ end }}')) AS inner_actions
+          AND tstamp < TIMESTAMP('{{ end }}'))) AS inner_actions
     ON
       inner_actions.uuid = inner_clicks.uuid
       AND inner_actions.advertiser = inner_clicks.advertiser
@@ -58,29 +58,29 @@ FROM (
       uuid,
       advertiser,
       actionbeacon,
-      value) AS matched_actions
+      value)) AS matched_actions
 -- Join to clicks on uuid, advertiser and timestamp
 -- inner select for matched_actions only retrieves max timestamp of matched click
 -- so need to re-join to clicks to get advertiser data.
-INNER JOIN EACH (
-  SELECT
+INNER JOIN (
+  (SELECT
     *
   FROM
     `{{ dataset }}.clicks`
   WHERE
-    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS clicks
+    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS clicks
 ON
   matched_actions.click_tstamp = clicks.tstamp
   AND matched_actions.uuid = clicks.uuid
   AND matched_actions.advertiser = clicks.advertiser
 -- Join auctions to get publisher data
-INNER JOIN EACH (
-  SELECT
+INNER JOIN (
+  (SELECT
     *
   FROM
     `{{ dataset }}.auctions`
   WHERE
-    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS auctions
+    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS auctions
 ON
   clicks.impid = auctions.impid
 GROUP BY

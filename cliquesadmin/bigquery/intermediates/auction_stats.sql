@@ -8,7 +8,7 @@ SELECT
   max_bid,
   IF(clearprice IS NULL, max_bid, clearprice) AS clearprice
 FROM (
-  SELECT
+ (SELECT
     auctions.tstamp AS tstamp,
     auctions.auctionId AS auctionId,
     auctions.uuid AS uuid,
@@ -18,10 +18,10 @@ FROM (
     MAX(IF(max_bids.bid IS NULL, bids.bid, NULL) + 0.01) AS clearprice
   FROM
     `{{ dataset }}.auctions` AS auctions
-  INNER JOIN EACH `{{ dataset }}.impressions` AS impressions
+  INNER JOIN `{{ dataset }}.impressions` AS impressions
   ON
     auctions.impid = impressions.impid
-  INNER JOIN EACH `{{ dataset }}.bids` AS bids
+  INNER JOIN `{{ dataset }}.bids` AS bids
   ON
     auctions.auctionId = bids.auctionId
     AND auctions.impid = bids.impid
@@ -33,8 +33,8 @@ FROM (
     -- for which this field is NULL to get the second price.
     -- You may be tempted to use the NTH aggregation function, but it won't work for
     -- distributed queries, i.e. any of them
-  LEFT JOIN EACH (
-    SELECT
+  LEFT JOIN (
+    (SELECT
       b.auctionId AS auctionId,
       b.bidid AS bidid,
       b.adv_clique AS adv_clique,
@@ -44,8 +44,8 @@ FROM (
       -- could put WHERE clause here to make join table smaller but edge case of auctions
       -- happening as the hour ticks over bothers me, i.e. bids which happen in next hour
       -- after auction might not get joined here and lost forever
-    INNER JOIN EACH (
-      SELECT
+    INNER JOIN (
+      (SELECT
         auctionId,
         adv_clique,
         impid,
@@ -55,20 +55,20 @@ FROM (
       GROUP BY
         auctionId,
         impid,
-        adv_clique) AS m
+        adv_clique)) AS m
     ON
       b.auctionId = m.auctionId
       AND b.impid = m.impid
       AND b.adv_clique = m.adv_clique
-      AND b.bid = m.max_bid) AS max_bids
+      AND b.bid = m.max_bid)) AS max_bids
   ON
     bids.bidid = max_bids.bidid
   WHERE
     auctions.tstamp >= TIMESTAMP('{{ start }}')
     AND auctions.tstamp < TIMESTAMP('{{ end }}')
-    AND auctions.level == 'info'
+    AND auctions.level = 'info'
   GROUP BY
     tstamp,
     auctionId,
     uuid,
-    impid)
+    impid))

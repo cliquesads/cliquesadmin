@@ -13,7 +13,7 @@ SELECT
   COUNT(DISTINCT(auctions.uuid)) AS uniques
 FROM
   `{{ dataset }}.auctions` AS auctions
-INNER JOIN EACH `{{ dataset }}.auction_defaults` AS defaults
+INNER JOIN `{{ dataset }}.auction_defaults` AS defaults
 ON
   -- TODO: This technically should be joining on impid and auctionId to ensure uniqueness, but
   -- TODO: since this query is only counting the number of defaults and the behavior
@@ -26,7 +26,7 @@ ON
 WHERE
   auctions.tstamp >= TIMESTAMP('{{ start }}')
   AND auctions.tstamp < TIMESTAMP('{{ end }}')
-GROUP EACH BY
+GROUP BY
   publisher,
   site,
   page,

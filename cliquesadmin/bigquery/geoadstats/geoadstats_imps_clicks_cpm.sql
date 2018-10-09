@@ -23,20 +23,20 @@ SELECT
   0 AS click_convs
 FROM
   `{{ dataset }}.auctions` AS auctions
-INNER JOIN EACH `{{ dataset }}.impressions` AS imps
+INNER JOIN `{{ dataset }}.impressions` AS imps
 ON
   auctions.impid = imps.impid
-INNER JOIN EACH `{{ dataset }}.auction_stats` AS auction_stats
+INNER JOIN `{{ dataset }}.auction_stats` AS auction_stats
 ON
   auctions.impid = auction_stats.impid AND
   auctions.auctionId = auction_stats.auctionId
-LEFT JOIN EACH `{{ dataset }}.clicks` AS clicks
+LEFT JOIN `{{ dataset }}.clicks` AS clicks
 ON
   auctions.impid = clicks.impid
 WHERE
   auctions.tstamp >= TIMESTAMP('{{ start }}')
   AND auctions.tstamp < TIMESTAMP('{{ end }}')
-GROUP EACH BY
+GROUP BY
   publisher,
   site,
   page,

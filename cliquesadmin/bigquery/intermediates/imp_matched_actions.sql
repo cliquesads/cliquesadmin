@@ -23,7 +23,7 @@ SELECT
   FIRST(matched_actions.actionbeacon) AS actionbeacon,
   FIRST(matched_actions.value) AS value
 FROM (
-  SELECT
+  (SELECT
     inner_actions.actionid AS actionid,
     inner_actions.tstamp AS tstamp,
     inner_actions.uuid AS uuid,
@@ -34,22 +34,22 @@ FROM (
     -- last touch attribution, so take the last timestamp
   FROM (
       -- get only impressions from last 30 days
-    SELECT
+    (SELECT
       i.uuid AS uuid,
       i.advertiser AS advertiser,
       i.tstamp AS tstamp
     FROM
       `{{ dataset }}.impressions` AS i
     WHERE
-      tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS inner_imps
-  INNER JOIN EACH (
-    SELECT
+      tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS inner_imps
+  INNER JOIN (
+    (SELECT
       *
     FROM
       `{{ dataset }}.actions`
     WHERE
       tstamp >= TIMESTAMP('{{ start }}')
-      AND tstamp < TIMESTAMP('{{ end }}')) AS inner_actions
+      AND tstamp < TIMESTAMP('{{ end }}'))) AS inner_actions
   ON
     inner_actions.uuid = inner_imps.uuid
     AND inner_actions.advertiser = inner_imps.advertiser
@@ -62,7 +62,7 @@ FROM (
     uuid,
     advertiser,
     actionbeacon,
-    value) AS matched_actions
+    value)) AS matched_actions
 -- Join to imps on uuid, advertiser and timestamp
 -- inner select for matched_actions only retrieves max timestamp of matched impression
 -- so need to re-join to impressions to get impression data.
@@ -70,25 +70,25 @@ FROM (
 -- NOTE: Because this join will pick up all impressions with the same timestamp,
 -- uuid & advertiser, which can happen when multiple ads are served to someone on
 -- one page, the outer select is grouped by actionid in order to de-dupe these
-INNER JOIN EACH (
-  SELECT
+INNER JOIN (
+  (SELECT
     *
   FROM
     `{{ dataset }}.impressions`
   WHERE
-    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS imps
+    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS imps
 ON
   matched_actions.imp_tstamp = imps.tstamp
   AND matched_actions.uuid = imps.uuid
   AND matched_actions.advertiser = imps.advertiser
 -- Join auctions to get publisher data
-INNER JOIN EACH (
-  SELECT
+INNER JOIN (
+  (SELECT
     *
   FROM
     `{{ dataset }}.auctions`
   WHERE
-    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY")) AS auctions
+    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS auctions
 ON
   imps.impid = auctions.impid
 GROUP BY

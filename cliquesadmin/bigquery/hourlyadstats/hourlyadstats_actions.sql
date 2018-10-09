@@ -20,10 +20,10 @@ SELECT
     SUM(IF(c.click_tstamp IS NULL
         OR c.click_tstamp <= i.imp_tstamp, 1, 0)) AS view_convs,
     SUM(IF(c.click_tstamp IS NOT NULL
-        AND c.click_tstamp > i.imp_tstamp, 1, 0)) AS click_convs,
+        AND c.click_tstamp > i.imp_tstamp, 1, 0)) AS click_convs
   FROM
     `{{ dataset }}.imp_matched_actions` AS i
-  OUTER JOIN EACH `{{ dataset }}.click_matched_actions` AS c
+  LEFT OUTER JOIN `{{ dataset }}.click_matched_actions` AS c
   ON
     c.actionid = i.actionid
   WHERE
