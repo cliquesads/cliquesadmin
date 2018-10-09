@@ -1,3 +1,4 @@
+#standardSQL
 SELECT
   auctions.tstamp AS tstamp,
   auctions.auctionId AS auctionId,

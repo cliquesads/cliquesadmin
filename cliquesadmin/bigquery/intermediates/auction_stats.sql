@@ -1,3 +1,4 @@
+#standardSQL
 SELECT
   tstamp,
   auctionId,

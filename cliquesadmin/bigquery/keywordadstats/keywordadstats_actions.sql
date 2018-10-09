@@ -1,3 +1,4 @@
+#standardSQL
 SELECT
 	TIMESTAMP('{{ start }}') AS hour,
 	i.publisher AS publisher,

@@ -1,3 +1,4 @@
+#standardSQL
 SELECT
   -- Wrap FIRST aggregation functions around all fields
   -- and group by actionid in order to de-duplicate actionid's.

@@ -1,3 +1,4 @@
+#standardSQL
 SELECT
   FIRST(clicks.tstamp) AS click_tstamp,
   FIRST(matched_actions.tstamp) AS action_tstamp,

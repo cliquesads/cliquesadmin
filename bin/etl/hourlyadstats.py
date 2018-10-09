@@ -43,7 +43,8 @@ GLOBAL_QUERY_OPTS = {
             'projectId': cliques_bq_settings.PROJECT_ID,
         },
         'createDisposition': 'CREATE_AS_NEEDED',
-        'writeDisposition': 'WRITE_APPEND'
+        'writeDisposition': 'WRITE_APPEND',
+        'useLegacySQL': False
 }
 name = 'HourlyAdStats'
 
