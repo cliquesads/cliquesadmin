@@ -95,7 +95,7 @@ ON
 GROUP BY
   actionid)
 SELECT
-  imp_tstamp[SAFE_ORDINAL(1)] as imp_tstap,
+  imp_tstamp[SAFE_ORDINAL(1)] as imp_tstamp,
   action_tstamp[SAFE_ORDINAL(1)] as action_tstamp,
   uuid[SAFE_ORDINAL(1)] as uuid,
   actionid,
