@@ -1,27 +1,28 @@
 #standardSQL
+WITH thing AS (
 SELECT
   -- Wrap FIRST aggregation functions around all fields
   -- and group by actionid in order to de-duplicate actionid's.
   -- Duplicate matches will occur ONLY IF multiple impressions from same
   -- advertiser & exact same tstamp (down to the second) are matched to
   -- an action
-  FIRST(imps.tstamp) AS imp_tstamp,
-  FIRST(matched_actions.tstamp) AS action_tstamp,
-  FIRST(matched_actions.uuid) AS uuid,
+  ARRAY_AGG(imps.tstamp) AS imp_tstamp,
+  ARRAY_AGG(matched_actions.tstamp) AS action_tstamp,
+  ARRAY_AGG(matched_actions.uuid) AS uuid,
   matched_actions.actionid AS actionid,
-  FIRST(imps.impid) AS impid,
-  FIRST(matched_actions.advertiser) AS advertiser,
-  FIRST(imps.campaign) AS campaign,
-  FIRST(imps.creativegroup) AS creativegroup,
-  FIRST(imps.creative) AS creative,
-  FIRST(imps.adv_clique) AS adv_clique,
-  FIRST(auctions.publisher) AS publisher,
-  FIRST(auctions.site) AS site,
-  FIRST(auctions.page) AS page,
-  FIRST(auctions.placement) AS placement,
-  FIRST(auctions.pub_clique) AS pub_clique,
-  FIRST(matched_actions.actionbeacon) AS actionbeacon,
-  FIRST(matched_actions.value) AS value
+  ARRAY_AGG(imps.impid) AS impid,
+  ARRAY_AGG(matched_actions.advertiser) AS advertiser,
+  ARRAY_AGG(imps.campaign) AS campaign,
+  ARRAY_AGG(imps.creativegroup) AS creativegroup,
+  ARRAY_AGG(imps.creative) AS creative,
+  ARRAY_AGG(imps.adv_clique) AS adv_clique,
+  ARRAY_AGG(auctions.publisher) AS publisher,
+  ARRAY_AGG(auctions.site) AS site,
+  ARRAY_AGG(auctions.page) AS page,
+  ARRAY_AGG(auctions.placement) AS placement,
+  ARRAY_AGG(auctions.pub_clique) AS pub_clique,
+  ARRAY_AGG(matched_actions.actionbeacon) AS actionbeacon,
+  ARRAY_AGG(matched_actions.value) AS value
 FROM (
   (SELECT
     inner_actions.actionid AS actionid,
@@ -41,7 +42,7 @@ FROM (
     FROM
       `{{ dataset }}.impressions` AS i
     WHERE
-      tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS inner_imps
+      tstamp >= TIMESTAMP_ADD(TIMESTAMP('{{ end }}'), INTERVAL -{{ lookback }} DAY))) AS inner_imps
   INNER JOIN (
     (SELECT
       *
@@ -76,7 +77,7 @@ INNER JOIN (
   FROM
     `{{ dataset }}.impressions`
   WHERE
-    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS imps
+    tstamp >= TIMESTAMP_ADD(TIMESTAMP('{{ end }}'), INTERVAL -{{ lookback }} DAY))) AS imps
 ON
   matched_actions.imp_tstamp = imps.tstamp
   AND matched_actions.uuid = imps.uuid
@@ -88,8 +89,28 @@ INNER JOIN (
   FROM
     `{{ dataset }}.auctions`
   WHERE
-    tstamp >= DATE_ADD(TIMESTAMP('{{ end }}'), -{{ lookback }}, "DAY"))) AS auctions
+    tstamp >= TIMESTAMP_ADD(TIMESTAMP('{{ end }}'), INTERVAL -{{ lookback }} DAY))) AS auctions
 ON
   imps.impid = auctions.impid
 GROUP BY
-  actionid
+  actionid)
+SELECT
+  imp_tstamp[SAFE_ORDINAL(1)] as imp_tstap,
+  action_tstamp[SAFE_ORDINAL(1)] as action_tstamp,
+  uuid[SAFE_ORDINAL(1)] as uuid,
+  actionid,
+  impid[SAFE_ORDINAL(1)] as impid,
+  advertiser[SAFE_ORDINAL(1)] as advertiser,
+  campaign[SAFE_ORDINAL(1)] as campaign,
+  creativegroup[SAFE_ORDINAL(1)] as creativegroup,
+  creative[SAFE_ORDINAL(1)] as creative,
+  adv_clique[SAFE_ORDINAL(1)] as adv_clique,
+  actionbeacon[SAFE_ORDINAL(1)] as actionbeacon,
+  value[SAFE_ORDINAL(1)] as value,
+  publisher[SAFE_ORDINAL(1)] as publisher,
+  site[SAFE_ORDINAL(1)] as site,
+  page[SAFE_ORDINAL(1)] as page,
+  placement[SAFE_ORDINAL(1)] as placement,
+  pub_clique[SAFE_ORDINAL(1)] as pub_clique
+FROM thing
+  

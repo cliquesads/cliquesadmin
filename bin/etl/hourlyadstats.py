@@ -70,35 +70,35 @@ if __name__ == '__main__':
         ###########################
         # IMP_MATCHED_ACTIONS ETL #
         ###########################
-        # imp_matched_query_opts = GLOBAL_QUERY_OPTS
-        #
-        # imp_matched_query_opts['destinationTable']['tableId'] = 'imp_matched_actions'
-        # imp_matched_actions_etl = BigQueryIntermediateETL('intermediates/imp_matched_actions.sql',
-        #                                                   cliques_bq_settings,
-        #                                                   query_options=imp_matched_query_opts)
-        # logger.info('Now matching imps to actions, storing in BigQuery')
-        # imp_matched_result = imp_matched_actions_etl.run(start=args.start,
-        #                                                  end=args.end,
-        #                                                  dataset=dataset,
-        #                                                  error_callback=pd_error_callback,
-        #                                                  lookback=view_lookback)
-        # logger.info('Done')
+        imp_matched_query_opts = GLOBAL_QUERY_OPTS
+
+        imp_matched_query_opts['destinationTable']['tableId'] = 'imp_matched_actions'
+        imp_matched_actions_etl = BigQueryIntermediateETL('intermediates/imp_matched_actions.sql',
+                                                          cliques_bq_settings,
+                                                          query_options=imp_matched_query_opts)
+        logger.info('Now matching imps to actions, storing in BigQuery')
+        imp_matched_result = imp_matched_actions_etl.run(start=args.start,
+                                                         end=args.end,
+                                                         dataset=dataset,
+                                                         error_callback=pd_error_callback,
+                                                         lookback=view_lookback)
+        logger.info('Done')
 
         #############################
         # CLICK_MATCHED_ACTIONS ETL #
         #############################
-        # click_matched_query_opts = GLOBAL_QUERY_OPTS
-        # click_matched_query_opts['destinationTable']['tableId'] = 'click_matched_actions'
-        # imp_matched_actions_etl = BigQueryIntermediateETL('intermediates/click_matched_actions.sql',
-        #                                                   cliques_bq_settings,
-        #                                                   query_options=click_matched_query_opts)
-        # logger.info('Now matching clicks to actions, storing in BigQuery')
-        # imp_matched_result = imp_matched_actions_etl.run(start=args.start,
-        #                                                  end=args.end,
-        #                                                  dataset=dataset,
-        #                                                  error_callback=pd_error_callback,
-        #                                                  lookback=click_lookback)
-        # logger.info('Done')
+        click_matched_query_opts = GLOBAL_QUERY_OPTS
+        click_matched_query_opts['destinationTable']['tableId'] = 'click_matched_actions'
+        imp_matched_actions_etl = BigQueryIntermediateETL('intermediates/click_matched_actions.sql',
+                                                          cliques_bq_settings,
+                                                          query_options=click_matched_query_opts)
+        logger.info('Now matching clicks to actions, storing in BigQuery')
+        imp_matched_result = imp_matched_actions_etl.run(start=args.start,
+                                                         end=args.end,
+                                                         dataset=dataset,
+                                                         error_callback=pd_error_callback,
+                                                         lookback=click_lookback)
+        logger.info('Done')
 
         #####################
         # AUCTION_STATS ETL #
