@@ -1,9 +1,9 @@
 import logging
-from datetime import datetime
 import pandas as pd
 from cliquesadmin.etl import ETL
 
 logger = logging.getLogger(__name__)
+
 
 class MongoAggregationETL(ETL):
     """
@@ -70,6 +70,8 @@ class MongoAggregationETL(ETL):
         :param dataframe:
         :return:
         """
+        if dataframe.empty:
+            return {}
         records = dataframe.to_dict(orient='records')
         if self.upsert:
             updated = 0
@@ -130,5 +132,9 @@ class DailyMongoAggregationETL(MongoAggregationETL):
                     % (self.input_mongo_collection, len(results)))
         results = pd.DataFrame(results)
         # Cast date_field to date
-        results[self.date_field] = results[self.date_field].astype('datetime64[s]')
+        if not results.empty:
+            results[self.date_field] = results[self.date_field].astype('datetime64[s]')
+        else:
+            logger.info('No results returned from aggregation pipeline against %s, skipping remaining steps...'
+                        % self.input_mongo_collection)
         return results
