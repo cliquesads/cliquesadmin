@@ -7,6 +7,8 @@ from cliquesadmin.misc_utils import parse_hourly_etl_args
 from cliquesadmin.jsonconfig import JsonConfigParser
 from cliquesadmin.etl.bigquery_etl import BigQueryMongoETL, BigQueryIntermediateETL, BqMongoKeywordETL
 from cliquesadmin.gce_utils.bigquery import cliques_bq_settings
+from cliquesadmin.etl.query_templates.mongo.daily_ad_stats import daily_ad_stats_pipeline
+from cliquesadmin.etl.mongo_etl import DailyMongoAggregationETL
 
 config = JsonConfigParser()
 
@@ -266,6 +268,29 @@ if __name__ == '__main__':
         else:
             logger.info('No rows to insert, KEYWORD Auction Defaults ETL complete.')
 
+        ########################################################
+        # POPULATE DAILYADSTATS FROM HOURLYADSTATS AGGREGATION #
+        ########################################################
+        input_collection = destination_db.hourlyadstats
+        output_collection = destination_db.dailyadstats
+        update_keys = [
+            "date",
+            "advertiser",
+            "campaign",
+            "adv_clique",
+            "publisher",
+            "site",
+            "pub_clique"
+        ]
+        daily_start = args.start.replace(hour=0, minute=0, second=0)
+        daily_end = daily_start + timedelta(days=1)
+        logger.info('Now upserting MongoDB DailyAdStats with aggregation results from HourlyAdStats...')
+        logger.info('Day interval is %s to (but not including) %s' % (daily_start, daily_end))
+        etl = DailyMongoAggregationETL('date', daily_ad_stats_pipeline, input_collection, output_collection,
+                                       upsert=True, update_keys=update_keys)
+        result = etl.run(start_datetime=daily_start,
+                         end_datetime=daily_end)
+        logger.info('DailyAdStats ETL complete.')
     except:
         # Trigger incident in PagerDuty, then write out to log file
         if os.environ.get('ENV', None) == 'production':
