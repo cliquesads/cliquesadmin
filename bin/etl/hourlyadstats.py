@@ -5,8 +5,8 @@ from datetime import timedelta
 from cliquesadmin.pagerduty_utils import stacktrace_to_pd_event, create_pd_event_wrapper
 from cliquesadmin.misc_utils import parse_hourly_etl_args
 from cliquesadmin.jsonconfig import JsonConfigParser
-from cliquesadmin.gce_utils.bigquery import BigQueryMongoETL, BigQueryIntermediateETL, BqMongoKeywordETL, \
-    cliques_bq_settings
+from cliquesadmin.etl.bigquery_etl import BigQueryMongoETL, BigQueryIntermediateETL, BqMongoKeywordETL
+from cliquesadmin.gce_utils.bigquery import cliques_bq_settings
 
 config = JsonConfigParser()
 
