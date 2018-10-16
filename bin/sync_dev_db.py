@@ -27,7 +27,8 @@ SYNC = [
 AGGREGATES = [
     ('hourlyadstats', 'hour'),
     ('geoadstats', 'hour'),
-    ('keywordadstats', 'hour')
+    ('keywordadstats', 'hour'),
+    ('dailyadstats', 'date')
 ]
 
 # number of documents to sync for aggregates
