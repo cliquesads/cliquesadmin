@@ -33,7 +33,7 @@ def daily_ad_stats_pipeline(start_datetime=None, end_datetime=None):
             "$project": {
                 "_id": 0,
                 "date": {
-                    "$literal": start_datetime.replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S'),
+                    "$literal": start_datetime.replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
                 },
                 "advertiser": "$_id.advertiser",
                 "campaign": "$_id.campaign",

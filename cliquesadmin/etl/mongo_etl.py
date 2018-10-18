@@ -134,6 +134,9 @@ class DailyMongoAggregationETL(MongoAggregationETL):
         # Cast date_field to date
         if not results.empty:
             results[self.date_field] = results[self.date_field].astype('datetime64[s]')
+            logger.info('Date that will be inserted using as_type: %s' % results[self.date_field][0])
+            # results[self.date_field] = pd.to_datetime(results[self.date_field][0], utc=True)
+            # logger.info('Date that will be inserted using to_datetime: %s' % results[self.date_field][0])
         else:
             logger.info('No results returned from aggregation pipeline against %s, skipping remaining steps...'
                         % self.input_mongo_collection)
